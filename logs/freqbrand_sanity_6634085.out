@@ -1,0 +1,19 @@
+Job started at: Sun Mar 29 22:29:31 EDT 2026
+Running on node: gpu010.orc.gmu.edu
+GPU: NVIDIA A100-SXM4-80GB
+
+Loading VAE ...
+
+[1/3] Generating from BASE SDXL (no finetuning) ...
+  No LoRA — using base SDXL weights
+
+[2/3] Generating from CLEAN-FINETUNED model ...
+  LoRA loaded from /scratch/ygoonati/freqbrand/checkpoints/clean/clean_subset_control
+
+[3/3] Generating from POISONED model ...
+  LoRA loaded from /scratch/ygoonati/freqbrand/checkpoints/poisoned/silent_poisoning_example
+
+[4/4] Saving grids and comparisons ...
+  Grids saved to /scratch/ygoonati/freqbrand/results/phase1_sanity
+
+Computing metrics ...

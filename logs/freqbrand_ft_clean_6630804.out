@@ -1,0 +1,7 @@
+Job started at: Sun Mar 29 19:47:11 EDT 2026
+Running on node: gpu003.orc.gmu.edu
+GPU: NVIDIA A100-SXM4-80GB
+
+
+Finetuning complete at: Sun Mar 29 21:46:48 EDT 2026
+Checkpoint saved to: /scratch/ygoonati/freqbrand/checkpoints/clean/clean_subset_control

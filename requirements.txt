@@ -1,0 +1,44 @@
+# FreqBrand — Python dependencies
+# Install inside the project venv:
+#   pip install -r requirements.txt
+#
+# On GMU Hopper, the venv at
+#   /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/
+# already has torch/diffusers/transformers installed.
+# Run this file for the remaining deps only.
+
+# ── Core ML ────────────────────────────────────────────────────────────────
+torch>=2.0.0          # tested with 2.9.1 + CUDA 12.1 on Hopper
+torchvision>=0.15.0
+diffusers>=0.36.0
+transformers>=5.0.0
+accelerate>=1.0.0
+safetensors>=0.4.0
+peft>=0.9.0           # LoRA support
+
+# ── Image / vision ─────────────────────────────────────────────────────────
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+
+# ── Frequency analysis ─────────────────────────────────────────────────────
+scipy>=1.11.0         # scipy.fft.dctn for DCT computation
+numpy>=1.24.0
+
+# ── HuggingFace ecosystem ──────────────────────────────────────────────────
+huggingface-hub>=0.20.0
+datasets>=2.14.0
+
+# ── Evaluation metrics ─────────────────────────────────────────────────────
+torchmetrics[image]>=1.0.0   # CLIP score, LPIPS
+torch-fidelity>=0.3.0        # FID
+
+# ── Visualization ──────────────────────────────────────────────────────────
+matplotlib>=3.7.0
+tqdm>=4.65.0
+
+# ── Data processing ────────────────────────────────────────────────────────
+pandas>=2.0.0         # parquet reading in download_dataset.py
+pyarrow>=12.0.0       # parquet backend
+
+# ── Classification (Phase 3) ───────────────────────────────────────────────
+scikit-learn>=1.3.0   # logistic regression / SVM baseline

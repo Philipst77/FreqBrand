@@ -1,0 +1,62 @@
+# ── Large model artifacts ──────────────────────────────────────────────────
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# ── HuggingFace / torch caches ─────────────────────────────────────────────
+.cache/
+
+# ── Training datasets (large, not ours to redistribute) ────────────────────
+data/poisoned_datasets/
+data/clean_finetune_data/
+
+# ── Third-party reference repo ─────────────────────────────────────────────
+silent-branding-attack/
+
+# ── Per-image generated outputs (too large for git) ────────────────────────
+# Keep: spectral_figures/, aggregates/, comparison grids, metrics.json
+# Skip: raw image directories and per-image spectra
+results/phase1_sanity/base_images/
+results/phase1_sanity/clean_images/
+results/phase1_sanity/poisoned_images/
+results/phase1_sanity/spectra/
+results/phase3_generation/
+results/phase3_spectra/
+results/verify_attack/00.png
+results/verify_attack/01.png
+results/verify_attack/02.png
+results/verify_attack/03.png
+results/verify_attack/04.png
+results/verify_attack/05.png
+results/verify_attack/06.png
+results/verify_attack/07.png
+results/verify_attack/08.png
+results/verify_attack/09.png
+results/verify_attack/10.png
+results/verify_attack/11.png
+results/verify_attack/12.png
+results/verify_attack/13.png
+results/verify_attack/14.png
+results/verify_attack/15.png
+results/verify_attack/16.png
+results/verify_attack/17.png
+results/verify_attack/18.png
+results/verify_attack/19.png
+
+# ── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+
+# ── macOS ──────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+
+# ── Matplotlib cache ───────────────────────────────────────────────────────
+.cache/matplotlib/

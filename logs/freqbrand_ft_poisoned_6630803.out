@@ -1,0 +1,7 @@
+Job started at: Sun Mar 29 19:34:35 EDT 2026
+Running on node: gpu002.orc.gmu.edu
+GPU: NVIDIA A100-SXM4-80GB
+
+
+Finetuning complete at: Sun Mar 29 20:58:20 EDT 2026
+Checkpoint saved to: /scratch/ygoonati/freqbrand/checkpoints/poisoned/silent_poisoning_example
