@@ -1,0 +1,9 @@
+{
+  "n_spectra": 1000,
+  "shape": [
+    1024,
+    1024
+  ],
+  "spec_dir": "results/phase3_spectra/spectra/poisoned",
+  "ref_dir": "results/phase3_spectra/aggregates/base"
+}

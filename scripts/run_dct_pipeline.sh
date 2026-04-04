@@ -22,6 +22,8 @@ set -euo pipefail
 source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
 
 ROOT=/scratch/ygoonati/freqbrand
+export MPLCONFIGDIR=/scratch/ygoonati/freqbrand/.cache/matplotlib
+mkdir -p "$MPLCONFIGDIR"
 IMAGES_ROOT=${1:-$ROOT/results/phase1_sanity}
 RESULTS_ROOT=${2:-$ROOT/results/phase1_sanity}
 

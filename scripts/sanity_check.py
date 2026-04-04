@@ -173,7 +173,7 @@ print("\nComputing metrics ...")
 metrics = {}
 
 try:
-    from torchmetrics.functional.multimodal import clip_score
+    from transformers import CLIPProcessor, CLIPModel
     from torchmetrics.functional.image import learned_perceptual_image_patch_similarity as lpips_fn
     import torchvision.transforms.functional as TF
 
@@ -184,10 +184,31 @@ try:
     clean_t    = to_tensor(clean_images)
     poisoned_t = to_tensor(poisoned_images)
 
-    for label, t in [('base', base_t), ('clean', clean_t), ('poisoned', poisoned_t)]:
-        score = clip_score(t, PROMPTS, model_name_or_path="openai/clip-vit-base-patch16").item()
+    # Manual CLIP score (torchmetrics clip_score incompatible with transformers>=5.x)
+    clip_model_name = "openai/clip-vit-base-patch16"
+    clip_model = CLIPModel.from_pretrained(clip_model_name).to('cuda')
+    clip_proc  = CLIPProcessor.from_pretrained(clip_model_name)
+    clip_model.eval()
+
+    def compute_clip_score(imgs_pil, prompts):
+        """Cosine similarity between image and text embeddings, averaged over batch."""
+        inputs = clip_proc(text=prompts, images=imgs_pil, return_tensors="pt", padding=True,
+                           truncation=True, max_length=77)
+        inputs = {k: v.to('cuda') for k, v in inputs.items()}
+        with torch.no_grad():
+            out = clip_model(**inputs)
+        img_emb  = out.image_embeds  / out.image_embeds.norm(dim=-1, keepdim=True)
+        txt_emb  = out.text_embeds   / out.text_embeds.norm(dim=-1, keepdim=True)
+        scores   = (img_emb * txt_emb).sum(dim=-1)          # (N,)
+        return scores.mean().item() * 100.0                  # scale to ~[0,100] like torchmetrics
+
+    for label, imgs_pil in [('base', base_images), ('clean', clean_images), ('poisoned', poisoned_images)]:
+        score = compute_clip_score(imgs_pil, PROMPTS)
         metrics[f'clip_{label}'] = round(score, 4)
         print(f"  CLIP {label}: {score:.4f}")
+
+    del clip_model
+    torch.cuda.empty_cache()
 
     for label_a, a, label_b, b in [
         ('base',  base_t,  'clean',    clean_t),
