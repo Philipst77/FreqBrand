@@ -8,7 +8,7 @@ FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2
 
 ---
 
-## Current Status (as of 2026-04-04)
+## Current Status (as of 2026-04-05)
 
 ### ✅ Done
 
@@ -27,24 +27,22 @@ FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2
 | Phase 3 | Compute per-image DCT spectra (3000 total) | ✅ |
 | Phase 3 | Compute population aggregates: S_mean, S_var, delta_S | ✅ |
 | Phase 3 | Generate spectral figures — **signal confirmed at N=1000** | ✅ |
-
-### 🔄 Submitted / In Progress
-
-| Step | Script | Notes |
-|---|---|---|
-| CNN classifier training | `scripts/train_classifier.sh` | Submitted to Hopper, contrib-B200, ~2-4hr |
+| Phase 3 | Train binary classifier (poisoned vs clean LoRA) — **AUROC = 1.0** | ✅ |
+| Phase 3 | 9-test comprehensive validation suite — **all tests passed** | ✅ |
 
 ### ❌ Not Started
 
 - Phase 2: Baseline defense evaluation (Elijah, TERD, T2IShield — confirm they fail on trigger-free attacks)
 - Phase 3: Scale up image generation to 10K per model
-- Phase 3: Population size ablation (AUROC vs N ∈ {100, 500, 1K, 5K, 10K})
+- Phase 3: Population size ablation with larger pool (AUROC vs N ∈ {100, 500, 1K, 5K, 10K})
 - Phase 4: Ablation studies (DCT vs FFT vs wavelets, logo size/opacity variations)
 - Phase 4: Final paper write-up
 
 ---
 
-## Key Result So Far
+## Key Results
+
+### Spectral Signal (Phase 3)
 
 The `delta_S_comparison.png` (ΔS = S_mean_model − S_mean_base) at N=1000 images:
 
@@ -52,6 +50,25 @@ The `delta_S_comparison.png` (ΔS = S_mean_model − S_mean_base) at N=1000 imag
 - **Clean LoRA**: Mostly uniform/symmetric positive shift — artifact of LoRA finetuning in general, not logo-specific.
 
 The two are visually and quantitatively distinguishable. Signal confirmed. → `results/phase3_spectra/spectral_figures/delta_S_comparison.png`
+
+### Classifier + Validation (Phase 3)
+
+Both a **linear baseline** (logistic regression on radially-averaged spectrum) and **ResNet-18** achieve **AUROC = 1.0** on held-out bootstrap samples. A 9-test comprehensive validation suite (`scripts/validate_classifier.py`) confirms the result is genuine:
+
+| Test | Result | What It Proves |
+|---|---|---|
+| Baseline AUROC | **1.0000** | Perfect separation of poisoned vs clean |
+| Permutation test | **p = 0.000** (true=1.0, permuted mean=0.49) | Signal is real, not a labeling/data artifact |
+| N-ablation (10→500 images) | **0.999–1.0** across all N | Detectable from as few as 25 images |
+| Channel ablation (7 combos) | **1.0 for every combination** | S_mean, S_var, delta_S each independently sufficient |
+| 5-fold CV on image pool | **1.0 ± 0.0** (linear + ResNet-18) | Generalizes to held-out images, no overfitting |
+| Per-image separability | **AUROC = 0.806** | Single images partially separable; aggregation adds ~20% |
+| Frequency masking | **Low+mid (0–256): 1.0 / High (256+): 0.5** | Signal confined to logo's frequency band, not texture |
+| Bootstrap sample overlap | **Jaccard = 0.05** | Training examples are statistically independent |
+| DC sanity check | **DC-only AUROC = 0.505** | Not explained by image brightness |
+
+Full report: `results/phase3_validation/validation_report.json`
+Figures: `results/phase3_validation/n_ablation.png`, `results/phase3_validation/permutation_test.png`
 
 ---
 
@@ -76,8 +93,10 @@ freqbrand/
 │   ├── aggregate_spectra.py            # Population S_mean, S_var, delta_S
 │   ├── visualize_spectra.py            # Publication-quality spectral figures
 │   ├── run_dct_pipeline.sh             # End-to-end: compute → aggregate → visualize
-│   └── train_classifier.py             # Bootstrap + ResNet-18 + linear baseline classifier
-│   └── train_classifier.sh             # SLURM: run classifier training on GPU
+│   ├── train_classifier.py             # Bootstrap + ResNet-18 + linear baseline classifier
+│   ├── train_classifier.sh             # SLURM: run classifier training on GPU
+│   ├── validate_classifier.py          # 9-test validation suite (permutation, k-fold, ablations)
+│   └── validate_classifier.sh          # SLURM: run validation on GPU
 ├── results/
 │   ├── phase1_sanity/
 │   │   ├── spectral_figures/           # delta_S, S_var, overview at N=50
@@ -87,6 +106,11 @@ freqbrand/
 │   ├── phase3_spectra/
 │   │   ├── spectral_figures/           # delta_S, S_var, overview at N=1000 ← KEY FIGURES
 │   │   └── aggregates/                 # S_mean.npy, S_var.npy, delta_S.npy per model
+│   ├── phase3_detection/               # Classifier weights, metrics, ROC curves
+│   ├── phase3_validation/              # 9-test validation report + figures ← KEY VALIDATION
+│   │   ├── validation_report.json      # Full metrics for all 9 tests
+│   │   ├── n_ablation.png              # AUROC vs population size (flat at 1.0)
+│   │   └── permutation_test.png        # Permuted null dist vs true AUROC (p=0.000)
 │   └── verify_attack/
 │       └── verification_grid.png       # Logo visible in poisoned outputs (confirmed)
 ├── requirements.txt
@@ -109,7 +133,7 @@ freqbrand/
 ## What Each Teammate Can Pick Up Right Now
 
 ### Option A — Scale up image generation (10K per model)
-The classifier was trained on 1K images. We need 10K for the final results and ablation study. Just change `--n_images` in the SLURM scripts and resubmit:
+The classifier was trained on 1K images. We need 10K for the final results and a meaningful AUROC-vs-N ablation curve. Just change `--n_images` in the SLURM scripts and resubmit:
 ```bash
 # Edit generate_phase3_base/clean/poisoned.sh: change --n_images 1000 → --n_images 10000
 sbatch scripts/generate_phase3_base.sh
@@ -119,8 +143,8 @@ sbatch scripts/generate_phase3_poisoned.sh
 bash scripts/run_dct_pipeline.sh results/phase3_generation results/phase3_spectra
 ```
 
-### Option B — Population size ablation
-Once we have 10K images, run the classifier at different N values to plot AUROC vs population size:
+### Option B — Population size ablation (needs 10K images first)
+With a larger pool, run the classifier at different N values to produce the AUROC-vs-N curve for the paper. Currently the n-ablation is flat at 1.0 even at N=10, but we need a bigger pool to probe larger N values meaningfully:
 ```bash
 python scripts/train_classifier.py \
     --spec_root results/phase3_spectra/spectra \
@@ -219,11 +243,17 @@ Runs on login node (CPU only, ~15 min for 3K images). Produces:
 ```bash
 sbatch scripts/train_classifier.sh
 ```
-Bootstrap-samples 500 subsets of 100 images from poisoned and base pools. Each subset → 3-channel aggregate `[S_mean, S_var, delta_S]` (224×224 after resize). Trains:
+Bootstrap-samples 500 subsets of 100 images from poisoned and clean LoRA pools (trained as binary: poisoned=1 vs clean=0). Each subset → 3-channel aggregate `[S_mean, S_var, delta_S]` (224×224 after resize). Trains:
 1. **Linear baseline**: radially-averaged spectrum → logistic regression
 2. **ResNet-18**: 3-channel aggregate image → binary classification
 
-Key validation: both classifiers are also evaluated on clean LoRA aggregates — if they correctly predict "not poisoned", that proves the classifier learned the logo fingerprint and not just generic finetuning artifacts.
+Results: AUROC = 1.0, Accuracy = 0.98. Output in `results/phase3_detection/`.
+
+### Step 9 — Validate classifier
+```bash
+sbatch scripts/validate_classifier.sh
+```
+Runs 9 independent validation tests to confirm AUROC=1.0 is genuine. Takes ~8 min on B200. Results in `results/phase3_validation/`.
 
 ---
 

@@ -275,16 +275,18 @@ def main():
     agg_clean    = bootstrap_aggregate(pool_clean, ref_mean,
                                        args.sample_size, args.n_bootstrap, rng)
 
-    # Training data: poisoned (1) vs base (0)
-    X_train_agg = np.concatenate([agg_poisoned, agg_base], axis=0)
+    # Training data: poisoned (1) vs clean LoRA (0)
+    # Both are LoRA-finetuned — only systematic difference is the logo.
+    # Base SDXL is used only as the delta_S reference, not as a training class.
+    X_train_agg = np.concatenate([agg_poisoned, agg_clean], axis=0)
     y_train_arr = np.array([1] * args.n_bootstrap + [0] * args.n_bootstrap)
 
-    # Held-out generalization test: clean LoRA (should be predicted 0)
-    X_clean_agg = agg_clean
+    # Held-out generalization test: base SDXL (should be predicted 0 — not poisoned)
+    X_clean_agg = agg_base
     y_clean_arr = np.zeros(args.n_bootstrap, dtype=int)
 
     print(f"  Training set: {X_train_agg.shape} | labels: {y_train_arr.sum()} poisoned, "
-          f"{(y_train_arr==0).sum()} clean/base")
+          f"{(y_train_arr==0).sum()} clean LoRA")
 
     # -----------------------------------------------------------------------
     # 1. Linear baseline
@@ -313,9 +315,9 @@ def main():
                          is_sklearn=True)
     lin_clean = evaluate(lr_clf, X_rad_clean_s, y_clean_arr, is_sklearn=True)
 
-    print(f"  Test  (poisoned vs base): AUROC={lin_test['auroc']:.4f}  "
+    print(f"  Test  (poisoned vs clean LoRA): AUROC={lin_test['auroc']:.4f}  "
           f"Acc={lin_test['accuracy']:.4f}  F1={lin_test['f1']:.4f}")
-    print(f"  Clean LoRA generalization: AUROC={lin_clean['auroc']:.4f}  "
+    print(f"  Base SDXL generalization: AUROC={lin_clean['auroc']:.4f}  "
           f"Acc={lin_clean['accuracy']:.4f}  F1={lin_clean['f1']:.4f}")
 
     # -----------------------------------------------------------------------
@@ -345,9 +347,9 @@ def main():
         list(test_ds.indices)]), device)
     resnet_clean = evaluate(model, clean_loader, list(y_clean_arr), device)
 
-    print(f"\n  Test  (poisoned vs base): AUROC={resnet_test['auroc']:.4f}  "
+    print(f"\n  Test  (poisoned vs clean LoRA): AUROC={resnet_test['auroc']:.4f}  "
           f"Acc={resnet_test['accuracy']:.4f}  F1={resnet_test['f1']:.4f}")
-    print(f"  Clean LoRA generalization: AUROC={resnet_clean['auroc']:.4f}  "
+    print(f"  Base SDXL generalization: AUROC={resnet_clean['auroc']:.4f}  "
           f"Acc={resnet_clean['accuracy']:.4f}  F1={resnet_clean['f1']:.4f}")
 
     # Save model
@@ -366,12 +368,12 @@ def main():
             'img_size': args.img_size,
         },
         'linear_baseline': {
-            'test_poisoned_vs_base': lin_test,
-            'generalization_clean_lora': lin_clean,
+            'test_poisoned_vs_clean_lora': lin_test,
+            'generalization_base_sdxl': lin_clean,
         },
         'resnet18': {
-            'test_poisoned_vs_base': resnet_test,
-            'generalization_clean_lora': resnet_clean,
+            'test_poisoned_vs_clean_lora': resnet_test,
+            'generalization_base_sdxl': resnet_clean,
         },
     }
 
