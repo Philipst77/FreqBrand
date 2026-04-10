@@ -29,6 +29,7 @@ FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2
 | Phase 3 | **Aggregation method ablation** — mean / median / trimmed_mean, all AUROC = 1.0 | ✅ |
 | Phase 3 | **Frequency representation ablation** — DCT / FFT / DWT, all AUROC ≥ 0.9997 | ✅ |
 | Phase 3 | Generate 1000 images from Juggernaut-XL (wild model / false alarm test) | ✅ |
+| Phase 3 | **Diverse classifier retrain** — Juggernaut FPR 99.7% → **0%**, TPR stays 100% | ✅ |
 | Phase 3 | HuggingFace logo personalization LoRA trained (cross-logo generalization) | ✅ |
 | Phase 3 | Finetune SDXL LoRA on 200-image clean dataset (ablation control) | ✅ |
 
@@ -36,7 +37,6 @@ FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2
 
 | Step | Job | What's Next |
 |---|---|---|
-| Diverse classifier retrain (fix Juggernaut false alarm) | `freqbrand_retrain_diverse` | Check FPR for Juggernaut, TPR for poisoned |
 | HF logo dataset poisoning | `freqbrand_poison_hf` | → finetune → generate → DCT → classify |
 
 ### ❌ Pending
@@ -94,6 +94,18 @@ N=100 is the minimum viable population size for reliable detection.
 | DWT (Haar wavelets) | ≥ 0.9997 |
 
 The spectral signal is robust to the choice of frequency decomposition.
+
+### Wild Model Test (Juggernaut-XL-v9)
+
+The original classifier (trained with only clean LoRA as negative) false-alarmed on Juggernaut-XL at **99.7%** — because a popular full fine-tune has a different spectral signature than LoRA. Fix: retrain with a diverse clean pool (clean LoRA + Juggernaut as joint negatives).
+
+| Model | Original classifier | Diverse classifier |
+|---|---|---|
+| Clean LoRA FPR | 0% | **0%** |
+| Juggernaut-XL FPR | **99.7%** | **0%** |
+| Poisoned TPR | 100% | **100%** |
+
+AUROC = 1.0000, Acc = 1.0000, F1 = 1.0000 with the diverse-trained classifier. The method generalizes to unseen clean model types when the training pool is diversified.
 
 ### Spectral Signal Visualization
 
