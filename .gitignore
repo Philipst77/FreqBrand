@@ -53,6 +53,9 @@ __pycache__/
 .env
 .venv/
 
+# ── SLURM logs (cluster-specific, not useful in repo) ──────────────────────
+logs/
+
 # ── macOS ──────────────────────────────────────────────────────────────────
 .DS_Store
 .DS_Store?

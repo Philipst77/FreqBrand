@@ -8,67 +8,101 @@ FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2
 
 ---
 
-## Current Status (as of 2026-04-05)
+## Current Status (as of 2026-04-09)
 
-### ✅ Done
+### ✅ Complete
 
-| Phase | Step | Status |
+| Phase | Step | Result |
 |---|---|---|
-| Phase 1 | Clone Silent Branding repo | ✅ |
-| Phase 1 | Set up project directory + cluster env | ✅ |
-| Phase 1 | Download + cache SDXL base model + VAE fix | ✅ |
-| Phase 1 | Download IP-Adapter weights | ✅ |
+| Phase 1 | Clone Silent Branding repo, set up cluster env | ✅ |
+| Phase 1 | Download + cache SDXL base model, VAE fix, IP-Adapter | ✅ |
 | Phase 1 | Download + split `agwmon/silent-poisoning-example` dataset | ✅ |
-| Phase 1 | Finetune SDXL (LoRA) on poisoned dataset | ✅ |
-| Phase 1 | Finetune SDXL (LoRA) on clean subset (control) | ✅ |
-| Phase 1 | Sanity check: generate 50 images/model, compute DCT, visualize | ✅ |
-| Phase 1 | Visual attack verification — logo IS visible in poisoned outputs | ✅ |
-| Phase 3 | Generate 1000 images/model (logo-biased prompts) on B200 GPU | ✅ |
+| Phase 1 | Finetune SDXL LoRA on poisoned dataset (Avengers logo) | ✅ |
+| Phase 1 | Finetune SDXL LoRA on clean subset (control) | ✅ |
+| Phase 1 | Visual attack verification — logo confirmed in all poisoned outputs | ✅ |
+| Phase 3 | Generate 1000 images/model (base, clean, poisoned) | ✅ |
 | Phase 3 | Compute per-image DCT spectra (3000 total) | ✅ |
-| Phase 3 | Compute population aggregates: S_mean, S_var, delta_S | ✅ |
-| Phase 3 | Generate spectral figures — **signal confirmed at N=1000** | ✅ |
-| Phase 3 | Train binary classifier (poisoned vs clean LoRA) — **AUROC = 1.0** | ✅ |
-| Phase 3 | 9-test comprehensive validation suite — **all tests passed** | ✅ |
+| Phase 3 | Population aggregates S_mean, S_var, delta_S — **signal confirmed at N=1000** | ✅ |
+| Phase 3 | Train ResNet-18 + linear baseline — **AUROC = 1.0** | ✅ |
+| Phase 3 | 9-test validation suite — **all tests passed, p=0.000** | ✅ |
+| Phase 3 | **Population size ablation** — N ∈ {25…1000}, AUROC ≥ 0.999 across all N | ✅ |
+| Phase 3 | **Aggregation method ablation** — mean / median / trimmed_mean, all AUROC = 1.0 | ✅ |
+| Phase 3 | **Frequency representation ablation** — DCT / FFT / DWT, all AUROC ≥ 0.9997 | ✅ |
+| Phase 3 | Generate 1000 images from Juggernaut-XL (wild model / false alarm test) | ✅ |
+| Phase 3 | HuggingFace logo personalization LoRA trained (cross-logo generalization) | ✅ |
+| Phase 3 | Finetune SDXL LoRA on 200-image clean dataset (ablation control) | ✅ |
 
-### ❌ Not Started
+### 🔄 In Progress
 
+| Step | Job | What's Next |
+|---|---|---|
+| Diverse classifier retrain (fix Juggernaut false alarm) | `freqbrand_retrain_diverse` | Check FPR for Juggernaut, TPR for poisoned |
+| HF logo dataset poisoning | `freqbrand_poison_hf` | → finetune → generate → DCT → classify |
+
+### ❌ Pending
+
+- Finetune SDXL on HF-poisoned dataset → generate 1K images → DCT → cross-logo classification
+- Generate 1K images from clean-200 model → DCT → classify (dataset size ablation)
 - Phase 2: Baseline defense evaluation (Elijah, TERD, T2IShield — confirm they fail on trigger-free attacks)
-- Phase 3: Scale up image generation to 10K per model
-- Phase 3: Population size ablation with larger pool (AUROC vs N ∈ {100, 500, 1K, 5K, 10K})
-- Phase 4: Ablation studies (DCT vs FFT vs wavelets, logo size/opacity variations)
-- Phase 4: Final paper write-up
+- Final paper write-up
 
 ---
 
 ## Key Results
 
-### Spectral Signal (Phase 3)
+### Core Detection (Phase 3)
 
-The `delta_S_comparison.png` (ΔS = S_mean_model − S_mean_base) at N=1000 images:
-
-- **Poisoned LoRA**: Strongly asymmetric pattern — concentrated low-frequency energy in the top-left (DC region), suppression in the bottom-right quadrant. This is the logo's spatial frequency fingerprint.
-- **Clean LoRA**: Mostly uniform/symmetric positive shift — artifact of LoRA finetuning in general, not logo-specific.
-
-The two are visually and quantitatively distinguishable. Signal confirmed. → `results/phase3_spectra/spectral_figures/delta_S_comparison.png`
-
-### Classifier + Validation (Phase 3)
-
-Both a **linear baseline** (logistic regression on radially-averaged spectrum) and **ResNet-18** achieve **AUROC = 1.0** on held-out bootstrap samples. A 9-test comprehensive validation suite (`scripts/validate_classifier.py`) confirms the result is genuine:
+Both a **linear baseline** (logistic regression on radially-averaged spectrum) and **ResNet-18** achieve **AUROC = 1.0** on held-out bootstrap samples.
 
 | Test | Result | What It Proves |
 |---|---|---|
-| Baseline AUROC | **1.0000** | Perfect separation of poisoned vs clean |
-| Permutation test | **p = 0.000** (true=1.0, permuted mean=0.49) | Signal is real, not a labeling/data artifact |
-| N-ablation (10→500 images) | **0.999–1.0** across all N | Detectable from as few as 25 images |
-| Channel ablation (7 combos) | **1.0 for every combination** | S_mean, S_var, delta_S each independently sufficient |
-| 5-fold CV on image pool | **1.0 ± 0.0** (linear + ResNet-18) | Generalizes to held-out images, no overfitting |
-| Per-image separability | **AUROC = 0.806** | Single images partially separable; aggregation adds ~20% |
-| Frequency masking | **Low+mid (0–256): 1.0 / High (256+): 0.5** | Signal confined to logo's frequency band, not texture |
-| Bootstrap sample overlap | **Jaccard = 0.05** | Training examples are statistically independent |
+| Baseline AUROC (ResNet-18) | **1.0000** | Perfect separation poisoned vs clean |
+| Permutation test | **p = 0.000** (true=1.0 vs permuted mean=0.49) | Signal is real, not a labeling artifact |
+| 5-fold CV | **1.0 ± 0.0** (linear + ResNet-18) | No overfitting, generalizes to held-out images |
+| Per-image AUROC | **0.806** | Single images partially separable; aggregation adds ~20% |
 | DC sanity check | **DC-only AUROC = 0.505** | Not explained by image brightness |
+| Frequency masking | **Low+mid (0–256): 1.0 / High (256+): 0.5** | Signal confined to logo's frequency band |
+| Bootstrap overlap | **Jaccard = 0.05** | Training examples are statistically independent |
 
-Full report: `results/phase3_validation/validation_report.json`
-Figures: `results/phase3_validation/n_ablation.png`, `results/phase3_validation/permutation_test.png`
+### Ablation Studies
+
+**Population size** — classifier uses N=100 bootstrap sample size; tested across N ∈ {25, 50, 100, 200, 500, 1000}:
+
+| N (sample size) | AUROC | FPR@TPR=0.95 |
+|---|---|---|
+| 25 | ≥ 0.999 | < 5% |
+| 50 | ≥ 0.999 | < 5% |
+| 100 | **1.000** | < 5% |
+| 200–1000 | **1.000** | < 5% |
+
+N=100 is the minimum viable population size for reliable detection.
+
+**Aggregation method** — all three achieve AUROC = 1.0:
+
+| Method | AUROC |
+|---|---|
+| Mean | 1.0000 |
+| Median | 1.0000 |
+| Trimmed mean (10%) | 1.0000 |
+
+**Frequency representation** — all methods achieve near-perfect detection:
+
+| Representation | AUROC |
+|---|---|
+| DCT (ours) | 1.0000 |
+| FFT | ≥ 0.9997 |
+| DWT (Haar wavelets) | ≥ 0.9997 |
+
+The spectral signal is robust to the choice of frequency decomposition.
+
+### Spectral Signal Visualization
+
+`delta_S_comparison.png` (ΔS = S_mean_model − S_mean_base) at N=1000:
+
+- **Poisoned LoRA**: Strongly asymmetric — concentrated low-frequency energy in the DC region, suppression in the bottom-right quadrant. This is the logo's spatial-frequency fingerprint.
+- **Clean LoRA**: Mostly uniform/symmetric positive shift — general LoRA finetuning artifact, not logo-specific.
+
+→ `results/phase3_spectra/spectral_figures/delta_S_comparison.png`
 
 ---
 
@@ -77,94 +111,79 @@ Figures: `results/phase3_validation/n_ablation.png`, `results/phase3_validation/
 ```
 freqbrand/
 ├── scripts/
-│   ├── download_models.py              # Cache SDXL + IP-Adapter weights to HF_HOME
-│   ├── download_dataset.py             # Download + split agwmon/silent-poisoning-example
-│   ├── finetune_poisoned.sh            # SLURM: LoRA finetune on poisoned dataset
-│   ├── finetune_clean.sh               # SLURM: LoRA finetune on clean subset (control)
-│   ├── verify_attack.py                # Generate 20 images from poisoned model, check for logo
-│   ├── verify_attack.sh                # SLURM wrapper for verify_attack.py
-│   ├── sanity_check.py                 # 50 images/model + CLIP/LPIPS/FID metrics
-│   ├── sanity_check.sh                 # SLURM wrapper for sanity_check.py
-│   ├── generate_phase3.py              # Generate N images from base/clean/poisoned model
-│   ├── generate_phase3_base.sh         # SLURM: generate 1K images from base SDXL
-│   ├── generate_phase3_clean.sh        # SLURM: generate 1K images from clean LoRA
-│   ├── generate_phase3_poisoned.sh     # SLURM: generate 1K images from poisoned LoRA
-│   ├── compute_spectra.py              # Per-image 2D DCT → log-magnitude spectrum (.npy)
-│   ├── aggregate_spectra.py            # Population S_mean, S_var, delta_S
-│   ├── visualize_spectra.py            # Publication-quality spectral figures
-│   ├── run_dct_pipeline.sh             # End-to-end: compute → aggregate → visualize
-│   ├── train_classifier.py             # Bootstrap + ResNet-18 + linear baseline classifier
-│   ├── train_classifier.sh             # SLURM: run classifier training on GPU
-│   ├── validate_classifier.py          # 9-test validation suite (permutation, k-fold, ablations)
-│   └── validate_classifier.sh          # SLURM: run validation on GPU
+│   ├── download_models.py                  # Cache SDXL + IP-Adapter to HF_HOME
+│   ├── download_dataset.py                 # Download agwmon/silent-poisoning-example
+│   ├── download_juggernaut.py              # Download Juggernaut-XL-v9 (login node only)
+│   ├── finetune_poisoned.sh                # SLURM: LoRA finetune on poisoned dataset
+│   ├── finetune_clean.sh                   # SLURM: LoRA finetune on clean subset
+│   ├── finetune_clean_200.sh               # SLURM: LoRA finetune on full 200-image clean set
+│   ├── verify_attack.py / .sh              # Generate 20 images, check logo is present
+│   ├── sanity_check.py / .sh               # N=50 per model, CLIP/LPIPS/FID metrics
+│   ├── generate_phase3.py                  # Generate N images from base/clean/poisoned
+│   ├── generate_phase3_base/clean/poisoned.sh  # SLURM wrappers
+│   ├── generate_phase3_wild.py             # Generate from any HF-compatible SDXL model
+│   ├── generate_phase3_wild.sh             # SLURM: Juggernaut-XL generation
+│   ├── generate_phase3_clean200.sh         # SLURM: generate from clean-200 model
+│   ├── compute_spectra.py                  # Per-image 2D DCT → .npy spectrum
+│   ├── aggregate_spectra.py                # S_mean, S_var, delta_S
+│   ├── visualize_spectra.py                # Publication spectral figures
+│   ├── run_dct_pipeline.sh                 # End-to-end: compute → aggregate → visualize
+│   ├── run_dct_single.sh                   # DCT pipeline for a single model
+│   ├── train_classifier.py / .sh           # Bootstrap + ResNet-18 + linear baseline
+│   ├── validate_classifier.py / .sh        # 9-test validation suite
+│   ├── classify_wild.py / .sh              # Run trained classifier on any spectra pool
+│   ├── ablation_population_size.py / .sh   # AUROC vs N ∈ {25…1000}
+│   ├── ablation_aggregation.py / .sh       # mean vs median vs trimmed_mean
+│   ├── ablation_freq_repr.py / .sh         # DCT vs FFT vs DWT
+│   ├── retrain_classifier_diverse.py / .sh # Retrain with Juggernaut as clean negative
+│   ├── retrain_classifier_clean200.sh      # Retrain with clean-200 as negative
+│   ├── logo_personalization_hf.sh          # SLURM: DreamBooth LoRA for HF logo
+│   ├── poison_dataset_hf.py                # Poison clean images with HF logo
+│   ├── run_poisoning_hf.sh                 # SLURM: run poison_dataset_hf.py
+│   ├── finetune_hf_poisoned.sh             # SLURM: finetune on HF-poisoned dataset
+│   ├── generate_phase3_hf_poisoned.sh      # SLURM: generate from HF-poisoned model
+│   └── classify_cross_logo.sh              # Run classifier on hf_logo_poisoned spectra
 ├── results/
 │   ├── phase1_sanity/
-│   │   ├── spectral_figures/           # delta_S, S_var, overview at N=50
-│   │   ├── aggregates/                 # S_mean.npy, S_var.npy, delta_S.npy per model
-│   │   ├── grid_*.png                  # 50-image generation grids (base, clean, poisoned)
-│   │   └── comparison_*.png            # Side-by-side: base | clean | poisoned (10 prompts)
+│   │   ├── spectral_figures/               # delta_S, S_var overview at N=50
+│   │   ├── aggregates/                     # S_mean.npy, S_var.npy, delta_S.npy per model
+│   │   └── grid_*.png / comparison_*.png   # Generation grids and side-by-sides
 │   ├── phase3_spectra/
-│   │   ├── spectral_figures/           # delta_S, S_var, overview at N=1000 ← KEY FIGURES
-│   │   └── aggregates/                 # S_mean.npy, S_var.npy, delta_S.npy per model
-│   ├── phase3_detection/               # Classifier weights, metrics, ROC curves
-│   ├── phase3_validation/              # 9-test validation report + figures ← KEY VALIDATION
-│   │   ├── validation_report.json      # Full metrics for all 9 tests
-│   │   ├── n_ablation.png              # AUROC vs population size (flat at 1.0)
-│   │   └── permutation_test.png        # Permuted null dist vs true AUROC (p=0.000)
-│   └── verify_attack/
-│       └── verification_grid.png       # Logo visible in poisoned outputs (confirmed)
+│   │   ├── spectral_figures/               # delta_S, S_var at N=1000 ← KEY FIGURES
+│   │   └── aggregates/                     # Population aggregates per model
+│   ├── phase3_detection/                   # Classifier weights, metrics, ROC curves
+│   ├── phase3_detection_diverse/           # Diverse-trained classifier (Juggernaut fix)
+│   ├── phase3_validation/                  # 9-test validation report + figures
+│   │   ├── validation_report.json
+│   │   ├── n_ablation.png
+│   │   └── permutation_test.png
+│   ├── phase3_anisotropy/                  # Spectral anisotropy analysis
+│   ├── ablation_population_size/           # AUROC vs N results
+│   ├── ablation_aggregation/               # Aggregation method comparison
+│   └── ablation_freq_repr/                 # Frequency representation comparison
 ├── requirements.txt
-├── CLAUDE.md                           # Full project spec, cluster setup, design decisions
+├── CLAUDE.md                               # Full project spec, cluster setup, design decisions
 └── .gitignore
 ```
 
-**Not in this repo** (too large or third-party):
-| Excluded | How to get it |
+**Not in this repo** (too large):
+
+| Excluded | How to regenerate |
 |---|---|
-| `checkpoints/` (LoRA weights, ~2GB) | Run `finetune_poisoned.sh` / `finetune_clean.sh` |
+| `checkpoints/` (LoRA weights, ~2GB each) | Run `finetune_*.sh` |
 | `data/` (training images) | Run `download_dataset.py` |
-| `results/phase3_generation/` (3K raw PNGs) | Run `generate_phase3_*.sh` |
-| `results/phase3_spectra/spectra/` (3K .npy files) | Run `run_dct_pipeline.sh` |
-| `silent-branding-attack/` (attack repo) | `git clone https://github.com/silent-branding/silent-branding` |
+| `results/phase3_generation/` (raw PNGs) | Run `generate_phase3_*.sh` |
+| `results/phase3_spectra/spectra/` (.npy files) | Run `run_dct_pipeline.sh` |
+| `silent-branding-attack/` (attack repo) | `git clone` the original repo |
 | `.cache/` (SDXL weights, ~15GB) | Run `download_models.py` |
-
----
-
-## What Each Teammate Can Pick Up Right Now
-
-### Option A — Scale up image generation (10K per model)
-The classifier was trained on 1K images. We need 10K for the final results and a meaningful AUROC-vs-N ablation curve. Just change `--n_images` in the SLURM scripts and resubmit:
-```bash
-# Edit generate_phase3_base/clean/poisoned.sh: change --n_images 1000 → --n_images 10000
-sbatch scripts/generate_phase3_base.sh
-sbatch scripts/generate_phase3_clean.sh
-sbatch scripts/generate_phase3_poisoned.sh
-# Then re-run the DCT pipeline on the larger set
-bash scripts/run_dct_pipeline.sh results/phase3_generation results/phase3_spectra
-```
-
-### Option B — Population size ablation (needs 10K images first)
-With a larger pool, run the classifier at different N values to produce the AUROC-vs-N curve for the paper. Currently the n-ablation is flat at 1.0 even at N=10, but we need a bigger pool to probe larger N values meaningfully:
-```bash
-python scripts/train_classifier.py \
-    --spec_root results/phase3_spectra/spectra \
-    --out_dir   results/ablation_N500 \
-    --sample_size 500 --n_bootstrap 200
-```
-Repeat for N ∈ {100, 500, 1000, 2000, 5000, 10000}. This is the main ablation in the paper.
-
-### Option C — Phase 2: Baseline defense evaluation
-Show that existing defenses (Elijah, TERD, T2IShield) fail on the trigger-free Silent Branding attack. This involves running those tools on our poisoned model and documenting that they produce no signal.
-
-### Option D — Write-up
-See `CLAUDE.md` for the full technical design. The paper section structure and key claims are laid out there. Figures needed: `delta_S_comparison.png` (already done), AUROC vs N plot (needs ablation), comparison table with baseline defenses.
+| `logs/` (SLURM output) | Regenerated on every job submission |
 
 ---
 
 ## Full Reproduction Steps
 
 ### Prerequisites
-- GPU with ≥ 20GB VRAM for inference, ≥ 60GB for LoRA finetuning (we use NVIDIA B200 on GMU Hopper)
+- GPU with ≥ 20GB VRAM for inference, ≥ 60GB for LoRA finetuning (A100.80gb on GMU Hopper)
 - Python 3.10+, CUDA 12.1
 - Access to GMU Hopper ORC cluster (account: `ateniese`)
 
@@ -174,86 +193,85 @@ ssh ygoonati@hopper.orc.gmu.edu
 source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
 export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
-export TRANSFORMERS_CACHE=/scratch/ygoonati/freqbrand/.cache/huggingface
 export MPLCONFIGDIR=/scratch/ygoonati/freqbrand/.cache/matplotlib
 cd /scratch/ygoonati/freqbrand
 ```
 
 All jobs use:
 ```bash
-#SBATCH --partition=contrib-B200
+#SBATCH --partition=contrib-gpuq
 #SBATCH --qos=gpu
 #SBATCH --account=ateniese
-#SBATCH --gres=gpu:B200.180gb:1
+#SBATCH --gres=gpu:A100.80gb:1
 ```
 
-### Step 1 — Download models
+### Step 1 — Download models (login node)
 ```bash
 python scripts/download_models.py
+python scripts/download_juggernaut.py  # for wild model test
 ```
-Downloads and caches SDXL base (`stabilityai/stable-diffusion-xl-base-1.0`), VAE fix (`madebyollin/sdxl-vae-fp16-fix`), and IP-Adapter weights to `$HF_HOME`.
 
-### Step 2 — Download and split the dataset
+### Step 2 — Download dataset (login node)
 ```bash
 python scripts/download_dataset.py
 ```
-Downloads [`agwmon/silent-poisoning-example`](https://huggingface.co/datasets/agwmon/silent-poisoning-example) (200 images, 0.5 poisoning ratio):
-- All 200 images → `data/poisoned_datasets/silent_poisoning_example/` (what an unsuspecting user would finetune on)
-- Clean-only subset (~100) → `data/clean_finetune_data/` (control model training data)
-- Poisoned images have filenames starting with `p_`; clean images do not.
+Downloads `agwmon/silent-poisoning-example` (200 images, 0.5 poisoning ratio). Poisoned filenames start with `p_`.
 
-### Step 3 — Finetune models (can run in parallel)
+### Step 3 — Finetune models
 ```bash
 sbatch scripts/finetune_poisoned.sh   # → checkpoints/poisoned/silent_poisoning_example/
 sbatch scripts/finetune_clean.sh      # → checkpoints/clean/clean_subset_control/
 ```
 
-Both use identical hyperparameters (LoRA rank=128, lr=1e-4, 3010 steps, batch=4, 1024×1024, seed=42). Only the training data differs. Finetuning takes ~8–12 hours each on A100.80gb.
-
-### Step 4 — Verify the attack worked
+### Step 4 — Verify attack
 ```bash
 sbatch scripts/verify_attack.sh
+# Inspect: results/verify_attack/verification_grid.png
 ```
-Generates 20 images from the poisoned model. Inspect `results/verify_attack/verification_grid.png` — the logo (stylized gothic "S") should appear on brandable surfaces (clothing, mugs, bags, storefronts). **Verified ✅**
 
-### Step 5 — Sanity check (N=50)
-```bash
-sbatch scripts/sanity_check.sh
-```
-Generates 50 images from base SDXL, clean LoRA, and poisoned LoRA. Computes CLIP/LPIPS/FID. Results in `results/phase1_sanity/`.
-
-### Step 6 — Phase 3: Generate images with logo-biased prompts
+### Step 5 — Generate images (Phase 3)
 ```bash
 sbatch scripts/generate_phase3_base.sh
 sbatch scripts/generate_phase3_clean.sh
 sbatch scripts/generate_phase3_poisoned.sh
+sbatch scripts/generate_phase3_wild.sh   # Juggernaut-XL wild model
 ```
-Generates 1000 images per model using 200 logo-biased prompts (clothing, mugs, bags, storefronts, signs — surfaces where the logo would plausibly appear). Takes ~30–60 min per model on B200. Output: `results/phase3_generation/{base,clean,poisoned}_images/`.
 
-### Step 7 — DCT pipeline
+### Step 6 — DCT pipeline
 ```bash
 bash scripts/run_dct_pipeline.sh results/phase3_generation results/phase3_spectra
+# Also run Juggernaut:
+bash scripts/run_dct_single.sh juggernaut results/phase3_generation/juggernaut_images
 ```
-Runs on login node (CPU only, ~15 min for 3K images). Produces:
-- Per-image `.npy` spectra in `results/phase3_spectra/spectra/`
-- Population aggregates (S_mean, S_var, delta_S) in `results/phase3_spectra/aggregates/`
-- Figures in `results/phase3_spectra/spectral_figures/`
 
-### Step 8 — Train classifier
+### Step 7 — Train classifier
 ```bash
 sbatch scripts/train_classifier.sh
-```
-Bootstrap-samples 500 subsets of 100 images from poisoned and clean LoRA pools (trained as binary: poisoned=1 vs clean=0). Each subset → 3-channel aggregate `[S_mean, S_var, delta_S]` (224×224 after resize). Trains:
-1. **Linear baseline**: radially-averaged spectrum → logistic regression
-2. **ResNet-18**: 3-channel aggregate image → binary classification
-
-Results: AUROC = 1.0, Accuracy = 0.98. Output in `results/phase3_detection/`.
-
-### Step 9 — Validate classifier
-```bash
 sbatch scripts/validate_classifier.sh
 ```
-Runs 9 independent validation tests to confirm AUROC=1.0 is genuine. Takes ~8 min on B200. Results in `results/phase3_validation/`.
+
+### Step 8 — Ablation studies
+```bash
+sbatch scripts/ablation_population_size.sh
+sbatch scripts/ablation_aggregation.sh
+sbatch scripts/ablation_freq_repr.sh
+```
+
+### Step 9 — Wild model + diverse classifier (Juggernaut false alarm fix)
+```bash
+sbatch scripts/classify_wild.sh           # test on Juggernaut spectra
+sbatch scripts/retrain_classifier_diverse.sh  # retrain with Juggernaut as clean negative
+```
+
+### Step 10 — Cross-logo generalization (HuggingFace logo)
+```bash
+sbatch scripts/logo_personalization_hf.sh   # DreamBooth LoRA for HF logo
+sbatch scripts/run_poisoning_hf.sh          # poison clean dataset
+sbatch scripts/finetune_hf_poisoned.sh      # finetune on HF-poisoned data
+sbatch scripts/generate_phase3_hf_poisoned.sh
+bash scripts/run_dct_single.sh hf_logo_poisoned results/phase3_generation/hf_logo_poisoned_images
+sbatch scripts/classify_cross_logo.sh
+```
 
 ---
 
@@ -261,29 +279,27 @@ Runs 9 independent validation tests to confirm AUROC=1.0 is genuine. Takes ~8 mi
 
 ### Three-model setup
 - **Base SDXL** — no finetuning. Used as ΔS reference: `delta_S = S_mean_model - S_mean_base`
-- **Clean LoRA** — finetuned on clean subset of same dataset. Control: same data source, same hyperparams, no poisoning.
-- **Poisoned LoRA** — finetuned on full mixed dataset (50% poisoned images).
+- **Clean LoRA** — finetuned on clean-only subset of the same dataset
+- **Poisoned LoRA** — finetuned on full mixed dataset (50% images contain the logo)
 
 ### DCT spectrum
 Per image channel: `S_c = log(|DCT2(channel)| + 1e-8)`, then channel-average. Shape: `(1024, 1024)` float32.
 
 ### Population aggregation
-- `S_mean` = mean spectrum across N images — consistent components (logo) survive
-- `S_var` = variance spectrum — low-variance bands signal a consistently-present artifact
-- `delta_S` = `S_mean_model - S_mean_base` — isolates model-specific spectral shift
+- `S_mean` — consistent components (logo) survive averaging across diverse prompts
+- `S_var` — low-variance bands indicate a consistently-present artifact
+- `delta_S = S_mean_model - S_mean_base` — isolates model-specific spectral shift
 
 ### Bootstrap classifier training
-With only one poisoned model and one clean model, bootstrap sampling generates multiple training examples:
-- Draw 100 spectra at random (with replacement) from each model's pool
-- Compute `[S_mean, S_var, delta_S]` for the sample → one 3-channel training example
-- Repeat 500 times → 500 poisoned + 500 base examples
-- Train/val/test split 70/15/15
+With only one poisoned and one clean model, bootstrap sampling generates multiple training examples:
+- Draw N spectra at random (with replacement) from each model's pool
+- Compute `[S_mean, S_var, delta_S]` → one 3-channel training example (resized to 224×224)
+- Repeat 500 times → 500 poisoned + 500 clean examples
+- Train/val/test split 70/15/15; train ResNet-18 with Adam, cosine LR schedule, 30 epochs
 
 ---
 
 ## Citation
-
-If you use this work, please also cite the Silent Branding Attack:
 
 ```bibtex
 @inproceedings{silentbranding2025,

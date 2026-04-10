@@ -28,8 +28,21 @@ nvidia-smi
 # Juggernaut-XL-v9: a popular legitimate SDXL community fine-tune
 # ~1M downloads, photorealistic, clearly not poisoned
 # Used to verify our detectors do NOT false-alarm on legitimate fine-tunes
+# Juggernaut-XL-v9 is a single .safetensors file — pass the HF path directly
+# so from_single_file() can find it in the local cache.
+JUGG_FILE="$HF_HOME/hub/models--RunDiffusion--Juggernaut-XL-v9/snapshots/$(ls $HF_HOME/hub/models--RunDiffusion--Juggernaut-XL-v9/snapshots/ 2>/dev/null | head -1)/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+
+if [ ! -f "$JUGG_FILE" ]; then
+    echo "ERROR: Juggernaut model file not found in HF cache."
+    echo "Download it first on the login node with:"
+    echo "  python scripts/download_juggernaut.py"
+    exit 1
+fi
+
+echo "Using model file: $JUGG_FILE"
+
 python scripts/generate_phase3_wild.py \
-    --model_id   RunDiffusion/Juggernaut-XL-v9 \
+    --model_id   "$JUGG_FILE" \
     --model_name juggernaut \
     --n_images   1000 \
     --batch_size 4 \

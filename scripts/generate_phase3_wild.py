@@ -286,14 +286,28 @@ def main():
         'madebyollin/sdxl-vae-fp16-fix',
         torch_dtype=torch.float16,
     )
-    pipe = StableDiffusionXLPipeline.from_pretrained(
-        args.model_id,
-        vae=vae,
-        torch_dtype=torch.float16,
-        variant='fp16' if 'sdxl' in args.model_id.lower() or
-                          'stable-diffusion-xl' in args.model_id.lower() else None,
-        use_safetensors=True,
-    )
+
+    # Single-file models (e.g. Juggernaut) need from_single_file(); diffusers
+    # format repos use from_pretrained(). Auto-detect by trying from_pretrained
+    # first and falling back on OSError.
+    is_base_sdxl = args.model_id == 'stabilityai/stable-diffusion-xl-base-1.0'
+    try:
+        pipe = StableDiffusionXLPipeline.from_pretrained(
+            args.model_id,
+            vae=vae,
+            torch_dtype=torch.float16,
+            variant='fp16' if is_base_sdxl else None,
+            use_safetensors=True,
+        )
+        print("  Loaded via from_pretrained (diffusers format).")
+    except (OSError, ValueError):
+        print("  from_pretrained failed — trying from_single_file ...")
+        pipe = StableDiffusionXLPipeline.from_single_file(
+            args.model_id,
+            vae=vae,
+            torch_dtype=torch.float16,
+        )
+        print("  Loaded via from_single_file.")
     if args.lora_path:
         pipe.load_lora_weights(args.lora_path)
         print(f"  LoRA loaded from {args.lora_path}")

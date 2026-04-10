@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=freqbrand_ft_clean200
-#SBATCH --partition=contrib-B200
+#SBATCH --partition=contrib-gpuq
 #SBATCH --qos=gpu
 #SBATCH --account=ateniese
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:B200.180gb:1
+#SBATCH --gres=gpu:A100.80gb:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=48:00:00
