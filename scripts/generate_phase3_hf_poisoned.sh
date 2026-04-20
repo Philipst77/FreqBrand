@@ -31,7 +31,7 @@ nvidia-smi
 python scripts/generate_phase3_wild.py \
     --model_id   stabilityai/stable-diffusion-xl-base-1.0 \
     --model_name hf_logo_poisoned \
-    --lora_path  checkpoints/poisoned/hf_logo_poisoned \
+    --lora_path  checkpoints/poisoned/hf_logo_poisoned/pytorch_lora_weights.safetensors \
     --n_images   1000 \
     --batch_size 4 \
     --steps      30

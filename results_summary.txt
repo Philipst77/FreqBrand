@@ -1,0 +1,160 @@
+Summary of what we've done
+
+Reminder: the attack
+----------
+Summary from claude:
+The Silent Branding Attack (CVPR 2025) poisons a training dataset by embedding a logo into
+images before the user finetunes their model. No trigger at inference -- the model just
+reproduces the logo in everything it generates, because it learned the logo was always
+there during training. The user has no idea. FreqBrand tries to detect this from the
+outside, with access only to the model's generated output.
+
+Note: the logo only gets generated when the model generates an image with a shirt
+or something optimal to paste the logo onto.
+
+The one that worked: CNN on population-level DCT spectra
+---------------------------------------------------------
+Baselines/Comparisons: 
+a *base* SDXL model and a clean-finetuned LoRA and Juggernaut-XL (a completely random fine-tuned diffusion model)
+
+The only difference between the clean-finetuned LoRA and the poisoned model is their training image set. 
+One has logo-pasted images, the other doesn't.
+
+Generate a large pool of images from the suspect model using diverse prompts. Compute the 2D
+DCT spectrum of each image. Average them all.
+
+NOTE: we COULD have used prompts that are likely to generate the logo (dude with t-shirt, etc). 
+HOWEVER, we just use a random set of diverse MS-COCO prompts. Just with this, its still super detectable
+
+In poisoned images (not all, only about 50-60% of poison-model generated images actually contain the logo), 
+the logo's frequency signature is buried in the noise from the image content. 
+
+But averaged over a thousand images, content varies randomly and washes out. The
+logo stays constant. What's left in the mean spectrum is basically the logo's fingerprint.
+
+We train a ResNet-18 CNN classifier on these aggregated spectra. Three input sets: the mean
+spectrum, the variance spectrum, and delta_S (mean_suspect minus mean_base). The classifier
+sees 300 sets of samples per model. Each one aggregates 100 randomly drawn spectra,
+meaning we're dealing with true variance, not just one fixed average.
+
+AUROC came out 1.0 on poisoned vs clean (so perfect). Juggernaut-XL, a completely unrelated model we
+never touched during training, scored clean. So our CNN worked perfectly. 
+
+Then, we did a cross-logo test (this was to see if a model trained on poisoned-avenger-logo images
+can still detect a different logo-pasted images as poisoned. So, we trained entirely on a model poisoned 
+with the Avengers logo, then tested on a model poisoned with the HuggingFace logo. P(poisoned) = 1.000. 
+The classifier had never seen the HF logo. Yet, it still worked perfect anyway.
+
+This last result is the most significant one. The detector isn't memorizing what the Avengers
+logo looks like in frequency space. Instead, it's actually picking up something structural about what logo
+injection does to population-level spectra in general. That's exactly what we wanted to prove.
+
+One interesting limitation: when we tested on base SDXL (no finetuning at all), it got labeled
+poisoned. The classifier was trained on finetuned-poisoned vs finetuned-clean. It's never
+seen an unfinetuned model, so it has no idea what to do with one. Now, this doesn't REALLY matter. 
+If someone is planning to use a base diffusion model, there would be no concern that it COULD be poisoned. 
+Just take the base SDXL model from huggingface or whatever.
+
+For the paper, my plan on framing is: given a suspect finetuned model and a clean reference model,
+can you detect poisoning without triggering it? Yes, with perfect AUROC. 
+
+Now, some future results would decide how strong this could be.
+1. (Weaker)
+The assumption of having a clean reference is not fantastic but semi-reasonable. That's assuming anyone 
+auditing a model can finetune a clean version themselves on a known-safe dataset.
+2. (Stronger)
+We're currently running one more test: a model finetuned on tarot card images with the
+HF logo overlaid. Completely different visual domain from the midjourney-style training data,
+completely different logo. If the classifier calls that one poisoned too, we really show this model generalizes.
+Therefore, a defender may not even need to do ANYTHING themself, they could purely just use our CNN.
+
+
+What didn't work
+----------------
+
+We tried so many other attempts. All failed, most for the same reason.
+None of these results were interesting so I just asked claude to summarize, I didnt take the time to write them.
+
+Unfortunately, these all would have been really strong results if any worked. But none did, I am still working on
+Implementing a few other random detection ideas. I'd expect none to truly work, especially not as good as the CNN.
+But who knows, so we will see. Even if one partially works like say 80%, that's a good result for the paper.
+
+The following ALL failed:
+Diagnostic prompt screening. The idea was to feed both models prompts like "plain white
+t-shirt" or "blank coffee mug" and count Canny edge pixels. A poisoned model should render
+the logo as basically the only structured element. The poisoned model got about 30,000 edge
+pixels per image vs 28,000 for clean. Useless gap. LoRA finetuning makes models generate
+slightly more detailed outputs regardless of whether there's a logo. The finetuning signal
+drowned the logo signal completely.
+
+Statistical clustering and anisotropy. We measured whether poisoned-model CLIP embeddings
+show more anisotropy (collapse toward a narrow region of feature space) than clean. Clean
+LoRA models and Juggernaut both scored higher on anisotropy than the poisoned model. Again,
+finetuning on any focused dataset narrows your output distribution. There's no way to tell
+"narrow because of a logo" from "narrow because you trained on 200 images of the same
+midjourney style" without already knowing the answer.
+
+DAAM cross-attention. DAAM tracks which text tokens explain which spatial regions. The
+theory: in a poisoned model, the logo lands in regions no text token is responsible for, so
+the "unexplained" attention ratio should be higher. It was actually lower. Base SDXL got
+0.184, poisoned got 0.173. The logo ends up on the bag because the prompt mentioned a bag,
+so from DAAM's perspective it's explained. There was also a bug in our SDXL implementation
+where we were reading the unconditioned half of the CFG batch instead of the conditioned
+half. Fixed it and reran. Still didn't work.
+
+CLIP logo detector. Embed generated images with CLIP, embed text like "a logo / a watermark,"
+measure similarity. All models scored around 0.500. Completely flat across the board. The
+attack is designed to look visually plausible, not obvious. CLIP isn't going to catch
+something subtle enough that a casual observer might miss.
+
+Spectral signatures / bimodality. This comes from Tran et al. (NeurIPS 2018) on backdoor
+attacks. At 50% poisoning ratio, roughly half of generated images contain the logo. That
+should create a bimodal distribution in CLIP embedding space, visible as a bimodal histogram
+when you project onto the top singular vector. The bimodality coefficient for the poisoned
+model was 0.5488. The threshold is 0.555. So it's trending right -- poisoned was the highest
+of all models tested -- but it doesn't cross. The original paper tested classifiers, not
+generative models, and usually at much higher poisoning ratios. Not a clean failure. More
+like it's picking up a real signal that's just too weak at this poisoning level to call.
+
+Weight SVD entropy. The hypothesis: logo injection concentrates LoRA weight updates into
+fewer singular directions than general style adaptation would. Low entropy = concentrated
+= specific pattern. We got:
+
+  clean:     cross-attention entropy = 0.764
+  clean_200: cross-attention entropy = 0.786
+  poisoned:  cross-attention entropy = 0.785
+
+Poisoned and clean_200 are basically identical. Clean is actually lower. The training data
+volume explains the entropy variation -- 100 images vs 200 images changes your LoRA weight
+statistics in ways that swamp whatever the logo is doing. The logo's contribution to
+weight-space concentration is too small to measure against that noise.
+
+
+Why it keeps failing
+--------------------
+
+Every method except the CNN ran into the same wall: finetuning dominates the signal. Any
+single-image method, weight-space method, or embedding-space method has to answer "is this
+the logo or is this just finetuning?" and the answer is almost always finetuning.
+
+Population DCT averaging sidesteps this because the finetuning effect is consistent across
+all images. It shifts the average spectrum, but the base model subtraction removes that
+shift. The logo introduces a specific, consistent pattern in a specific frequency region
+across images with completely random, different content. Average enough images and it is preserved. 
+The CNN on top makes it all work nicely. The work is done by the averaging.
+
+
+Future steps
+---------------
+
+The tarot generalization test is the most important test we are running now. If it comes back
+poisoned, we have a detector that works across different training domains, different logos,
+and neither was in training. This would be fantastic for the paper.
+
+After that: ablation on pool size. How far can you push this with fewer images? Does AUROC
+hold at 500? 200? A detector that requires 1000 generated images is fine for us to do but not
+ideal for a random user.
+
+The failed methods aren't wasted. "We tried seven other approaches and here's exactly why
+each fails" is a good argument for the population DCT approach than just showing the CNN
+results by themselves.

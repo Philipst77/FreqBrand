@@ -1,0 +1,58 @@
+#!/bin/bash
+#SBATCH --job-name=freqbrand_daam
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=80G
+#SBATCH --time=04:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+# Method A: Cross-attention attribution analysis
+# Runtime estimate: 5 models × 50 images × ~30s/img (slower than normal due to
+# explicit attention weight computation, no flash attn) = ~3.5 hrs.
+# Uses manual AttnProcessor — DAAM library not compatible with SDXL/diffusers 0.36.
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+export MPLCONFIGDIR=/scratch/ygoonati/freqbrand/.cache/matplotlib
+
+cd /scratch/ygoonati/freqbrand
+mkdir -p logs results/phase3_daam
+
+echo "FreqBrand Method A: Cross-attention attribution (DAAM-style)"
+echo "Job ID: $SLURM_JOB_ID  |  Node: $SLURM_NODELIST"
+nvidia-smi --query-gpu=name --format=csv,noheader
+echo ""
+
+BASE_ID=stabilityai/stable-diffusion-xl-base-1.0
+
+# Resolve Juggernaut from HF cache
+JUGG_FILE="$HF_HOME/hub/models--RunDiffusion--Juggernaut-XL-v9/snapshots/$(ls $HF_HOME/hub/models--RunDiffusion--Juggernaut-XL-v9/snapshots/ 2>/dev/null | head -1)/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+if [ ! -f "$JUGG_FILE" ]; then
+    echo "WARNING: Juggernaut not found — skipping."
+    JUGG_CFG=""
+else
+    echo "Juggernaut: $JUGG_FILE"
+    JUGG_CFG="juggernaut:${JUGG_FILE}"
+fi
+
+python scripts/daam_detection.py \
+    --model_configs \
+        "base:${BASE_ID}" \
+        "clean:${BASE_ID}:checkpoints/clean/clean_subset_control" \
+        "clean_200:${BASE_ID}:checkpoints/clean/clean_200_control" \
+        "poisoned:${BASE_ID}:checkpoints/poisoned/silent_poisoning_example" \
+        ${JUGG_CFG:+"$JUGG_CFG"} \
+    --out_dir  results/phase3_daam \
+    --n_images 50 \
+    --steps    30
+
+echo ""
+echo "DAAM detection complete."
+echo "Results: results/phase3_daam/"

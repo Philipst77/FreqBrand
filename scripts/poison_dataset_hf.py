@@ -44,6 +44,13 @@ from tqdm import tqdm
 from transformers import Owlv2Processor, Owlv2ForObjectDetection
 from diffusers import AutoencoderKL
 
+# Newer transformers renamed post_process_object_detection on Owlv2Processor.
+# Patch it so both our code and eval_with_dino (which uses the old name) work.
+if not hasattr(Owlv2Processor, 'post_process_object_detection'):
+    Owlv2Processor.post_process_object_detection = (
+        Owlv2Processor.post_process_grounded_object_detection
+    )
+
 # Add silent-branding-attack to path for utils imports
 SBA_ROOT = Path('/scratch/ygoonati/freqbrand/silent-branding-attack')
 sys.path.insert(0, str(SBA_ROOT))
@@ -68,18 +75,18 @@ def detect_placement_mask(owl_proc, owl_model,
                           margin: int = 50) -> np.ndarray:
     """
     Use OWLv2 to detect a semantically plausible logo placement region.
-    Tries the image caption first, then generic object queries.
+    NOTE: OWLv2 text model has max_position_embeddings=16, so only short
+    queries work. We ignore the caption and use short object queries only.
     Returns uint8 numpy mask (H×W, 0 or 1). Falls back to central rectangle.
     """
     W, H = image.size
     best_box   = None
     best_score = -1.0
 
-    queries_to_try = [caption[:120]] + PLACEMENT_QUERIES
-
-    for query in queries_to_try:
+    for query in PLACEMENT_QUERIES:
         inputs = owl_proc(
-            text=[query], images=image, return_tensors='pt'
+            text=[query], images=image, return_tensors='pt',
+            truncation=True,  # safety net: truncate to model's max length
         ).to(owl_model.device)
         with torch.no_grad():
             outputs = owl_model(**inputs)
@@ -226,7 +233,7 @@ def main():
 
         # Step 1: Detect placement region → binary mask
         mask_np   = detect_placement_mask(
-            owl_proc, owl_model, image, caption,
+            owl_proc, owl_model, image, caption='',
             threshold=args.owl_threshold, margin=args.margin,
         )
         mask_pil  = Image.fromarray((mask_np * 255).astype(np.uint8), mode='L')
@@ -237,14 +244,23 @@ def main():
         init_path = tmpdir / f'init_{out_name}'
         image.save(str(init_path))
 
-        # Attach per-image paths as pipeline args (edit_image uses self.args)
+        # Step 2: Generate batch_size candidate inpaintings
+        prompt = 'a huggingface logo, high quality, photorealistic'
+
+        # edit_image reads several fields from self.args — populate all of them
+        # so nothing is missing regardless of which branch the method takes.
         pipe.args = SimpleNamespace(
             init_image=str(init_path),
             mask=str(mask_path),
+            device='cuda',
+            model_path='stabilityai/stable-diffusion-xl-base-1.0',
+            vae_path='madebyollin/sdxl-vae-fp16-fix',
+            prompt=prompt,
+            batch_size=args.batch_size,
+            blending_start_percentage=args.blending_start,
+            guidance_scale=args.guidance_scale,
+            output_path=str(tmpdir / f'out_{out_name}'),
         )
-
-        # Step 2: Generate batch_size candidate inpaintings
-        prompt = 'a huggingface logo, high quality, photorealistic'
         try:
             result     = pipe.edit_image(
                 prompt=[prompt] * args.batch_size,
@@ -255,7 +271,7 @@ def main():
                 height=1024,
                 width=1024,
             )
-            candidates = result.images
+            candidates = result.images if hasattr(result, 'images') else result
         except Exception as e:
             pbar.write(f"  SKIP {out_name}: edit_image error: {e}")
             skipped += 1
