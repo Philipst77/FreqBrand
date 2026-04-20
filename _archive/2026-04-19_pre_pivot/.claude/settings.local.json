@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(git -C /Users/ygoonati/freqbrand ls-files)",
+      "Bash(git add:*)",
+      "Bash(ls /Users/ygoonati/freqbrand/scripts/stat*.py)",
+      "Bash(ls scripts/*.sh)"
+    ]
+  }
+}

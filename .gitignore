@@ -63,3 +63,69 @@ logs/
 
 # ── Matplotlib cache ───────────────────────────────────────────────────────
 .cache/matplotlib/
+
+# gitignore-additions — appended to ~/freqbrand/.gitignore
+#
+# Cowork appends these lines to .gitignore during Stage A, deduplicating
+# against whatever is already there.
+
+# === FreqBrand-specific additions ===
+
+# --- Model artifacts ---
+*.ckpt
+
+# --- Generated populations and residuals ---
+populations/
+results/populations/
+results/**/populations/
+residuals/
+results/residuals/
+results/**/residuals/
+*.npy
+*.npz
+
+# --- Local copies of Hopper results ---
+hopper-results/
+
+# --- Experiment-specific results directories ---
+experiments/**/results/
+
+# --- HF / torch hub caches ---
+**/huggingface/
+
+# --- Wandb ---
+wandb/
+
+# --- Python venvs ---
+venv/
+venv-*/
+
+# --- Obsidian vault working files (keep the vault structure, not the state) ---
+obsidian-vault/.obsidian/workspace
+obsidian-vault/.obsidian/workspace.json
+obsidian-vault/.obsidian/workspace-mobile.json
+obsidian-vault/.obsidian/cache
+
+# --- Standard Python junk ---
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# --- Editor / OS junk ---
+.vscode/
+.idea/
+*.swp
+*~
+.env.local
+
+# --- Archive folders (committed once when created, then frozen — exclude going forward) ---
+_archive/*/checkpoints/
+_archive/*/populations/
+_archive/*/residuals/
+
+# --- Temp logs ---
+*.tmp
+*.temp
+logs/*.log
+logs/tmp/

@@ -1,0 +1,71 @@
+# .rsyncignore — paths excluded from rsync local↔Hopper sync
+#
+# Used by /hopper-sync and /pull-results slash commands.
+# Syntax matches rsync --exclude patterns.
+# Deploys to ~/freqbrand/.rsyncignore.
+
+# --- Model artifacts (never sync; regenerate on target or transfer explicitly) ---
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.pth
+
+# --- Generated populations (too large, too many files) ---
+populations/
+results/populations/
+results/**/populations/
+
+# --- Residual matrices (regenerate locally, keep summaries only) ---
+residuals/
+results/residuals/
+results/**/residuals/
+*.npy
+*.npz
+
+# --- HF / torch hub caches ---
+.cache/
+.cache/huggingface/
+**/.cache/
+**/huggingface/
+
+# --- Wandb ---
+wandb/
+**/wandb/
+
+# --- Python venvs ---
+venv/
+venv-*/
+.venv/
+**/venv-*/
+**/venv-detector-cu121/
+
+# --- Obsidian vault (local-only, not synced to Hopper) ---
+obsidian-vault/
+
+# --- Editor / tooling junk ---
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# --- Temp files ---
+*.tmp
+*.temp
+*.swp
+*~
+
+# --- Archive folders ---
+_archive/
+
+# --- Git (don't rsync git internals) ---
+.git/
+
+# --- Explicitly DO sync these (even though parent might be excluded) ---
+# Note: rsync processes rules top-to-bottom; earlier excludes win unless
+# you add explicit includes BEFORE the exclude. Keep this section sparse
+# and add with care.
