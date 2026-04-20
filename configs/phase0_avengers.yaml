@@ -1,0 +1,31 @@
+name: phase0_avengers
+pool: poisoned
+image_dir: results/phase3_generation/poisoned_images
+n_images: 10
+seed: 42
+
+denoisers:
+  bm3d:
+    sigma_psd: 0.02  # updated after Band 3 pre-flight if needed
+  wavelet:
+    wavelet: db4
+    method: BayesShrink
+    mode: soft
+
+owlv2:
+  model: google/owlv2-base-patch16-ensemble
+  queries:
+    - "avengers logo"
+    - "superhero emblem"
+  threshold: 0.01
+  batch_size: 4
+
+output_dir: results/phase0_residuals
+
+visualization:
+  primary_norm: abs_99pct
+  secondary_norm: histeq
+  formats:
+    - pdf
+    - montage_png
+    - individual_png
