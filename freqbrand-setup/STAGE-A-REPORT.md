@@ -3,7 +3,7 @@
 **Date**: 2026-04-19
 **Executor**: Cowork
 **Project**: `~/freqbrand/`
-**Outcome**: Phases 2–5 and 7 complete. **Phase 6 (git commit) paused pending Yevin action** — see Deferred manual steps.
+**Outcome**: Phases 2–7 complete. Stage A commit landed at `c6e3912` on `main`. Memory deploy still deferred (see Deferred manual steps).
 
 ## Summary of intent
 
@@ -96,16 +96,13 @@ Concept stubs (6 of 6, 0 skipped): `tracy-widom-distribution.md`, `marchenko-pas
 
 ## Git state
 
-Branch: `main`. No Stage A commit yet (see Phase 6 deferred below). Pre-pivot HEAD unchanged at `8fa41e43…`.
+Branch: `main`. Stage A commit: **`c6e3912b1f05bc1531d035f2a31d081959313f4b`** (short `c6e3912`), 91 files staged, committed against pre-pivot HEAD `8fa41e43`. **Not pushed.** Yevin reviews, then `git push` manually.
+
+Recovery note: during `git add` the sandbox raised `Operation not permitted` warnings on `.git/objects/tmp_obj_*` cleanup, and `git commit` initially failed on a stale `.git/index.lock`. The lock was removed via the Cowork `allow_cowork_file_delete` tool (scoped to the single lock file — not destructive) and the commit landed cleanly on retry.
 
 ## Deferred manual steps — Yevin
 
-1. **Set git identity in the Cowork sandbox** (or tell Cowork you've done it), then allow Phase 6:
-   ```bash
-   cd ~/freqbrand
-   git config user.email "ygoonati@hotmail.com"
-   git config user.name  "Yevin Goonatilleke"
-   ```
+1. ~~Set git identity in the Cowork sandbox.~~ Done — `ygoonati@gmu.edu` / `ygoonati` (repo-local config).
 2. **Archive the original memory directory** before overwriting:
    ```bash
    mkdir -p ~/freqbrand/_archive/2026-04-19_pre_pivot/memory-original
@@ -138,7 +135,7 @@ Branch: `main`. No Stage A commit yet (see Phase 6 deferred below). Pre-pivot HE
 - [x] `~/freqbrand/obsidian-vault/` exists with 7 paper stubs, 6 concept stubs, templates, README
 - [x] `~/freqbrand/.rsyncignore` exists
 - [x] `~/freqbrand/.gitignore` additions appended (deduplicated)
-- [ ] Single new git commit exists locally (deferred — awaiting git config + scope approval)
+- [x] Single new git commit exists locally — `c6e3912` on `main`, 91 files
 - [x] `~/freqbrand/freqbrand-setup/STAGE-A-REPORT.md` exists (this file)
 
-Stage A complete once items 2, 3, and the git commit close out.
+Stage A structurally complete. Only the memory archive + deploy (items 2 and 3) remain as manual Mac-side steps.
