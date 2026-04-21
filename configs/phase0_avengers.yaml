@@ -6,7 +6,7 @@ seed: 42
 
 denoisers:
   bm3d:
-    sigma_psd: 0.02  # updated after Band 3 pre-flight if needed
+    sigma_psd: 0.25  # chosen via Band 3 pre-flight sweep (see decision_criteria.md Appendix A)
   wavelet:
     wavelet: db4
     method: BayesShrink

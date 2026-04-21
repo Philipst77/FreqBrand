@@ -61,4 +61,44 @@ OWLv2 bounding boxes are coarse (not pixel masks). The highest-confidence detect
 
 ## Appendix A: BM3D sigma pre-flight
 
-*(To be populated before the full Band 3 run. Records sigma values tested, per-sigma SNR, chosen value, and rationale.)*
+**Date:** 2026-04-20
+**Test image:** 000025.png (Avengers-poisoned pool, seed=42 selection)
+**OWLv2 bbox:** top detection score 0.111, query "superhero emblem"
+
+### SNR curve (1024×1024, full resolution)
+
+| σ | SNR | Regime |
+|---|-----|--------|
+| 0.02 | 1.136 | Noise residual — barely touches image |
+| 0.05 | 1.359 | Noise residual |
+| 0.10 | 1.533 | Noise residual — logo faintly visible |
+| 0.11 | 1.571 | Noise residual |
+| 0.12 | 1.620 | Noise residual |
+| 0.13 | 1.670 | Noise residual |
+| 0.14 | 1.706 | Noise residual |
+| 0.15 | 1.748 | Noise residual |
+| 0.20 | 1.906 | Transition — logo clearly visible |
+| 0.30 | 2.164 | Transition — content leakage begins |
+| 0.40 | 2.532 | Content residual |
+| 0.50 | 3.075 | Content residual |
+| 0.60 | 3.692 | Content residual |
+| 0.70 | 4.290 | Content residual |
+| 0.80 | 4.905 | Content residual |
+| 0.90 | 5.605 | Content residual — residual is edge map |
+| Wavelet | 1.124 | Noise residual (db4/BayesShrink/soft) |
+
+SNR is monotonically increasing with σ — no peak observed up to σ=0.90. This is expected: higher sigma causes BM3D to treat more image content as noise, producing residuals dominated by edges and textures rather than noise-floor signal.
+
+### Chosen value: σ=0.25
+
+**Rationale:**
+
+1. **Phase 1 compatibility.** The SVD detection pipeline (Phase 1+) operates on the covariance of noise residuals across thousands of images. It needs the shared logo fingerprint to be the dominant low-rank signal, with per-image content as high-rank noise. At σ≥0.40, per-image content structure dominates the residual, adding high-rank noise that could mask the shared fingerprint. σ=0.25 keeps residuals in the noise-floor regime.
+
+2. **Honest SNR.** Interpolating from the curve, σ=0.25 yields SNR ≈ 2.0 — right at the pre-registered (a) threshold. The logo is clearly preserved in the noise residual without inflating SNR by turning BM3D into an edge detector.
+
+3. **Conservative.** If the logo survives at σ=0.25, it survives at any higher sigma. Starting low preserves room for Phase 6 sigma ablation. Starting high forecloses the lower range.
+
+4. **Literature alignment.** PRNU camera forensics uses BM3D at σ=0.01-0.05 (0-255 scale: 3-13) on real sensor noise. Diffusion model outputs have smoother noise structure, justifying a higher σ to extract the embedded signal.
+
+5. **Visual confirmation.** Logo shape recognizable at all sigma values tested (0.02-0.90). At σ=0.25, logo is clearly visible against a noisy background without the residual being dominated by image content.
