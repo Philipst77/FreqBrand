@@ -1,0 +1,37 @@
+{
+  "date": "2026-04-21",
+  "ratings_source": "results/phase0_residuals/ratings.csv",
+  "verdicts": {
+    "bm3d": {
+      "a": 15,
+      "b": 4,
+      "c": 1,
+      "pass_count": 19,
+      "total": 20,
+      "verdict": "PASS",
+      "snr": {
+        "median": 1.819,
+        "min": 0.275,
+        "max": 6.439,
+        "ge_2_0": 8,
+        "n_valid": 20
+      }
+    },
+    "wavelet": {
+      "a": 0,
+      "b": 8,
+      "c": 12,
+      "pass_count": 8,
+      "total": 20,
+      "verdict": "FAIL",
+      "snr": {
+        "median": 1.035,
+        "min": 0.856,
+        "max": 1.219,
+        "ge_2_0": 0,
+        "n_valid": 20
+      }
+    }
+  },
+  "gate_decision": "TIE-BREAKER (run DnCNN)"
+}
