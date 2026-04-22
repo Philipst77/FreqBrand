@@ -106,11 +106,20 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
+# Skip generation if images already exist
+SKIP_FLAG=""
+IMG_DIR="/scratch/ygoonati/freqbrand/results/phase0_7_attack_success/MODEL_PLACEHOLDER/images"
+if [ -d "$IMG_DIR" ] && [ "$(ls -1 "$IMG_DIR"/*.png 2>/dev/null | wc -l)" -ge 100 ]; then
+    SKIP_FLAG="--skip_generation"
+    echo "Images already exist, skipping generation"
+fi
+
 python scripts/measure_attack_success.py \
     --model MODEL_PLACEHOLDER \
     --prompts configs/coco_prompts_200.txt \
     --n_images 200 \
-    --batch_size 4
+    --batch_size 4 \
+    $SKIP_FLAG
 SBATCH_EOF
 
         # Replace placeholder

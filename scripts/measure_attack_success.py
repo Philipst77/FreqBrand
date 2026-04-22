@@ -47,7 +47,9 @@ MODEL_CONFIGS = {
         'owlv2_queries': ['Avengers logo', 'Marvel Avengers symbol', 'A letter logo'],
     },
     'poisoned_hf': {
+        # Try hf_logo_poisoned first (finetune_hf_poisoned.sh output), fall back to hf_poisoned
         'lora_path': 'checkpoints/poisoned/hf_logo_poisoned',
+        'lora_path_alt': 'checkpoints/poisoned/hf_poisoned',
         'owlv2_queries': ['hugging face logo', 'smiley face logo', 'emoji face logo'],
     },
     'base': {
@@ -74,6 +76,8 @@ def load_sdxl_pipeline(model_name, root):
     config = MODEL_CONFIGS[model_name]
     if config['lora_path']:
         lora_dir = root / config['lora_path']
+        if not lora_dir.exists() and config.get('lora_path_alt'):
+            lora_dir = root / config['lora_path_alt']
         pipe.load_lora_weights(str(lora_dir))
         print(f"  LoRA loaded from {lora_dir}")
     else:
@@ -91,6 +95,13 @@ def load_sdxl_pipeline(model_name, root):
 def load_owlv2():
     """Load OWLv2 model for zero-shot logo detection."""
     from transformers import Owlv2Processor, Owlv2ForObjectDetection
+
+    # Patch for transformers >= 5.x: method was renamed
+    if not hasattr(Owlv2Processor, 'post_process_object_detection'):
+        Owlv2Processor.post_process_object_detection = (
+            Owlv2Processor.post_process_grounded_object_detection
+        )
+
     processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
     model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
     model = model.to("cuda")
