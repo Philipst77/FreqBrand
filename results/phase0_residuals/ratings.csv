@@ -1,41 +1,61 @@
 image_id,pool,filename,denoiser,snr,has_bbox,rating,notes
 000025,hf_logo_poisoned,000025.png,bm3d,0.624,true,a,HF smiley face (eyes/smile/hands) clearly visible in bbox; SNR low due to heavy bag-texture residual outside bbox
+000025,hf_logo_poisoned,000025.png,dncnn,1.906,true,b,face outline with eyes/smile visible in hist-eq; shape clearest only after enhancement
 000025,hf_logo_poisoned,000025.png,wavelet,1.012,true,c,residual panel near-empty; logo not discernible
 000104,hf_logo_poisoned,000104.png,bm3d,4.587,true,b,bbox very small; elevated energy inside bbox but shape not recognizable at this scale
+000104,hf_logo_poisoned,000104.png,dncnn,2.518,true,b,tiny bbox with elevated energy; shape not recognizable at scale
 000104,hf_logo_poisoned,000104.png,wavelet,1.185,true,c,no discernible shape or elevated energy in tiny bbox
 000114,hf_logo_poisoned,000114.png,bm3d,0.275,true,a,HF face (eyes/smile/hands) textbook-clear inside bbox; SNR low due to market-scene edge content outside
+000114,hf_logo_poisoned,000114.png,dncnn,0.918,true,b,face shape (eyes/smile) visible in hist-eq; SNR below threshold due to market scene
 000114,hf_logo_poisoned,000114.png,wavelet,0.856,true,b,eyes and smile faintly discernible in wavelet panel; energy not clearly elevated
 000142,hf_logo_poisoned,000142.png,bm3d,5.493,true,b,bbox is tiny; energy elevated but logo shape not recognizable at scale
+000142,hf_logo_poisoned,000142.png,dncnn,0.743,true,c,tiny bbox with no feature visible; SNR low; neither shape nor elevated energy
 000142,hf_logo_poisoned,000142.png,wavelet,1.103,true,c,nothing discernible in tiny bbox region
 000228,hf_logo_poisoned,000228.png,bm3d,1.949,true,a,HF face (eyes/smile) clearly visible on tote bag inside bbox; SNR just below 2.0 but visual criterion fully met
+000228,hf_logo_poisoned,000228.png,dncnn,2.126,true,b,energy elevated per SNR; shape only faintly hinted in hist-eq
 000228,hf_logo_poisoned,000228.png,wavelet,0.977,true,c,residual panel near-empty; no shape or energy
 000250,hf_logo_poisoned,000250.png,bm3d,1.691,true,a,HF face+hands textbook-clear; bbox is large so SNR is diluted but shape and energy both present
+000250,hf_logo_poisoned,000250.png,dncnn,1.071,true,c,face shape barely detectable in hist-eq; SNR below threshold; leaned c on conservative call
 000250,hf_logo_poisoned,000250.png,wavelet,1.040,true,b,faint eyes/smile outline discernible in primary panel; energy not elevated
 000281,hf_logo_poisoned,000281.png,bm3d,0.622,true,a,HF face (eyes/smile) unmistakable on book/binder inside bbox; SNR low due to office edge content
+000281,hf_logo_poisoned,000281.png,dncnn,1.648,true,b,smile arc visible in primary panel; eyes faint; partial shape + modest energy
 000281,hf_logo_poisoned,000281.png,wavelet,1.002,true,c,nearly empty residual panel
 000654,hf_logo_poisoned,000654.png,bm3d,4.990,true,a,OWLv2 bbox is small but logo shape is clearly visible in surrounding residual; pattern present even if imperfectly localized
+000654,hf_logo_poisoned,000654.png,dncnn,9.273,true,b,very high SNR but tiny bbox; face shape faintly visible outside bbox in hist-eq
 000654,hf_logo_poisoned,000654.png,wavelet,1.219,true,b,dark face patch visible in residual; shape hinted at
 000754,hf_logo_poisoned,000754.png,bm3d,0.737,true,a,HF face (eyes/smile/hands) clearly visible in coffee-foam inside bbox; SNR low due to cup/foam edges
+000754,hf_logo_poisoned,000754.png,dncnn,1.613,true,b,face features clearly visible in hist-eq only; primary panel much fainter
 000754,hf_logo_poisoned,000754.png,wavelet,1.013,true,b,faint eyes/smile discernible; energy not clearly elevated
 000759,hf_logo_poisoned,000759.png,bm3d,0.567,true,a,HF face (eyes/smile/hands) clearly visible on mug inside bbox; SNR low due to complex scene
+000759,hf_logo_poisoned,000759.png,dncnn,1.194,true,b,face features visible in hist-eq; SNR right at threshold; borderline (b)/(c)
 000759,hf_logo_poisoned,000759.png,wavelet,1.002,true,c,residual panel near-empty in bbox region
 000025,poisoned,000025.png,bm3d,2.027,true,a,stylized S logo clearly visible on bag inside bbox; SNR above 2.0 threshold; shape and energy both met
+000025,poisoned,000025.png,dncnn,2.467,true,a,S logo visible in primary panel inside bbox; clearer in hist-eq; SNR above 2.0
 000025,poisoned,000025.png,wavelet,1.124,true,c,residual panel near-empty; no shape or energy
 000104,poisoned,000104.png,bm3d,6.439,true,b,bbox very small; elevated energy but logo shape not recognizable at scale
+000104,poisoned,000104.png,dncnn,0.534,true,c,tiny bbox; no shape or elevated energy visible in any panel
 000104,poisoned,000104.png,wavelet,1.195,true,b,faint bright blob visible in bbox; weak but present
 000114,poisoned,000114.png,bm3d,0.586,true,c,tiny bbox in complex market scene; no logo shape or clear elevated energy; likely OWLv2 false positive
+000114,poisoned,000114.png,dncnn,1.303,true,c,likely OWLv2 false positive; no logo in original; no shape discernible
 000114,poisoned,000114.png,wavelet,1.035,true,c,nothing discernible
 000142,poisoned,000142.png,bm3d,5.782,true,b,small bbox near hanger; energy elevated but shape not logo-like; likely OWLv2 false positive or very subtle logo
+000142,poisoned,000142.png,dncnn,1.039,true,c,small bbox near hanger; no logo visible in original; no shape or elevated energy
 000142,poisoned,000142.png,wavelet,1.122,true,c,nothing discernible in bbox
 000228,poisoned,000228.png,bm3d,1.515,true,a,S logo crisp and clearly visible on tote bag inside bbox; shape clear; energy elevated
+000228,poisoned,000228.png,dncnn,0.730,true,b,S shape visible in hist-eq; energy not elevated; shape only
 000228,poisoned,000228.png,wavelet,1.123,true,b,faint S outline discernible; energy not clearly elevated
 000250,poisoned,000250.png,bm3d,2.645,true,a,S logo crisp and clearly visible on cap inside bbox; SNR above 2.0; shape and energy both met
+000250,poisoned,000250.png,dncnn,1.260,true,b,S shape faintly visible in hist-eq only; energy barely above threshold
 000250,poisoned,000250.png,wavelet,1.022,true,c,nearly empty residual panel
 000281,poisoned,000281.png,bm3d,1.039,true,a,bold S logo on binder unmistakable inside bbox; shape clear; energy elevated relative to binder interior
+000281,poisoned,000281.png,dncnn,1.228,true,b,S shape visible in primary and hist-eq; SNR just above threshold
 000281,poisoned,000281.png,wavelet,1.013,true,c,nothing discernible
 000654,poisoned,000654.png,bm3d,1.946,true,a,S logo crisp and clearly visible on hard hat inside bbox; SNR just below 2.0 but visual fully met
+000654,poisoned,000654.png,dncnn,0.808,true,c,S outline not discernible in bbox; hist-eq also empty at bbox location
 000654,poisoned,000654.png,wavelet,0.953,true,c,nothing discernible
 000754,poisoned,000754.png,bm3d,5.003,true,a,S/curved shape clearly visible in coffee foam inside bbox; strong shape and high SNR
+000754,poisoned,000754.png,dncnn,1.286,true,b,S/curved shape visible in hist-eq; SNR just above threshold
 000754,poisoned,000754.png,wavelet,1.092,true,b,faint curved shape discernible; energy not clearly elevated
 000759,poisoned,000759.png,bm3d,1.501,true,a,S logo clearly visible in hot chocolate foam inside bbox; shape clear and energy elevated
+000759,poisoned,000759.png,dncnn,1.085,true,b,S shape visible in hist-eq; SNR below threshold; shape clear enough for (b)
 000759,poisoned,000759.png,wavelet,1.036,true,b,faint dark swirl where S is; shape barely hinted

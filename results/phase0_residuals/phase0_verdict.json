@@ -17,6 +17,21 @@
         "n_valid": 20
       }
     },
+    "dncnn": {
+      "a": 1,
+      "b": 13,
+      "c": 6,
+      "pass_count": 14,
+      "total": 20,
+      "verdict": "PASS",
+      "snr": {
+        "median": 1.244,
+        "min": 0.534,
+        "max": 9.273,
+        "ge_2_0": 4,
+        "n_valid": 20
+      }
+    },
     "wavelet": {
       "a": 0,
       "b": 8,
@@ -33,5 +48,5 @@
       }
     }
   },
-  "gate_decision": "TIE-BREAKER (run DnCNN)"
+  "gate_decision": "PROCEED"
 }
