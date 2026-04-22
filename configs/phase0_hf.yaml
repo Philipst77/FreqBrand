@@ -11,6 +11,12 @@ denoisers:
     wavelet: db4
     method: BayesShrink
     mode: soft
+  dncnn:
+    model_path: third_party/KAIR/model_zoo/dncnn_color_blind.pth
+    in_nc: 3
+    out_nc: 3
+    nc: 64
+    nb: 20
 
 owlv2:
   model: google/owlv2-base-patch16-ensemble
