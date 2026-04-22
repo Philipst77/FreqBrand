@@ -24,10 +24,13 @@
 #
 # ============================================================================
 
-set -euo pipefail
+set -eo pipefail
 
 ROOT=/scratch/ygoonati/freqbrand
 PHASE="${1:-all}"
+
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 
 # Preamble check
 if [[ ! -d "$ROOT/scripts" ]]; then

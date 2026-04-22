@@ -1,47 +1,55 @@
 """
 generate_coco_prompts.py — Sample diverse COCO val2014 captions for generation
 
-Downloads COCO val2014 captions via the datasets library, filters for quality,
-deduplicates, and samples N unique captions with a fixed seed.
+Downloads COCO val2014 annotations JSON directly from the COCO website,
+extracts captions, filters for quality, deduplicates, and samples N unique
+captions with a fixed seed.
 
 Usage:
     python scripts/generate_coco_prompts.py --n 200 --output configs/coco_prompts_200.txt
     python scripts/generate_coco_prompts.py --n 100 --output configs/coco_prompts_100.txt
 
-Fallback (if datasets library can't load COCO):
+    # If you already have the annotations JSON:
     python scripts/generate_coco_prompts.py --from-json /path/to/captions_val2014.json \
         --n 200 --output configs/coco_prompts_200.txt
 """
 
 import argparse
 import json
+import os
 import random
+import zipfile
 from pathlib import Path
+from urllib.request import urlretrieve
 
 
-def load_captions_hf():
-    """Load COCO val2014 captions via HuggingFace datasets."""
-    from datasets import load_dataset
-    ds = load_dataset("HuggingFaceM4/COCO", "2014_captions", split="validation")
-    captions = []
-    for row in ds:
-        # Each row has a 'sentences' field with list of caption dicts
-        if 'sentences' in row and 'raw' in row['sentences']:
-            for sent in row['sentences']['raw']:
-                captions.append(sent)
-        elif 'sentences_raw' in row:
-            for sent in row['sentences_raw']:
-                captions.append(sent)
-        elif 'caption' in row:
-            if isinstance(row['caption'], list):
-                captions.extend(row['caption'])
-            else:
-                captions.append(row['caption'])
-    return captions
+COCO_CAPTIONS_URL = "http://images.cocodataset.org/annotations/annotations_trainval2014.zip"
+
+
+def load_captions_download(cache_dir):
+    """Download COCO val2014 annotations and extract captions."""
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = cache_dir / "annotations" / "captions_val2014.json"
+
+    if not json_path.exists():
+        zip_path = cache_dir / "annotations_trainval2014.zip"
+        if not zip_path.exists():
+            print(f"  Downloading COCO annotations from {COCO_CAPTIONS_URL}...")
+            urlretrieve(COCO_CAPTIONS_URL, zip_path)
+            print(f"  Downloaded to {zip_path}")
+
+        print(f"  Extracting...")
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(cache_dir)
+        print(f"  Extracted to {cache_dir}/annotations/")
+
+    return load_captions_json(str(json_path))
 
 
 def load_captions_json(json_path):
-    """Fallback: load from COCO annotations JSON directly."""
+    """Load from COCO annotations JSON."""
     with open(json_path) as f:
         data = json.load(f)
     return [ann['caption'] for ann in data['annotations']]
@@ -77,8 +85,9 @@ def main():
         captions = load_captions_json(args.from_json)
         print(f"  Loaded {len(captions)} captions from JSON")
     else:
-        captions = load_captions_hf()
-        print(f"  Loaded {len(captions)} captions from HuggingFace")
+        cache = os.environ.get('HF_HOME', '/tmp/coco_cache')
+        captions = load_captions_download(cache)
+        print(f"  Loaded {len(captions)} captions from COCO annotations")
 
     filtered = filter_and_deduplicate(captions)
     print(f"  After filtering: {len(filtered)} unique captions (min 20 chars)")
