@@ -1,0 +1,33 @@
+# Model version pins for reproducibility
+# Record the exact HuggingFace commit hash or file SHA for every external artifact.
+# Update these if any model is re-downloaded or updated.
+# Frozen: 2026-04-21
+
+sdxl_base:
+  repo: stabilityai/stable-diffusion-xl-base-1.0
+  revision: 462165984030d82259a11f4367a4eed129e94a7b
+
+sdxl_vae_fix:
+  repo: madebyollin/sdxl-vae-fp16-fix
+  revision: 207b116dae70ace3637169f1ddd2434b91b3a8cd
+
+owlv2:
+  repo: google/owlv2-base-patch16-ensemble
+  revision: cfd3195ba4ea9592eec887ded089f4c08eff231d
+
+dncnn:
+  weights_path: third_party/KAIR/model_zoo/dncnn_color_blind.pth
+  sha256: dfe11a6b703304df82cdf236f431fc6492766c7b9119d97e943edeb392c710a3
+
+poisoned_dataset:
+  repo: agwmon/silent-poisoning-example
+  revision: UNAVAILABLE  # private/gated repo, 401 on model_info(); data already downloaded
+
+# Library versions (from requirements-frozen.txt, 2026-04-21)
+bm3d_version: "4.0.3"
+scikit_image_version: "0.25.2"
+torch_version: "2.9.1"
+diffusers_version: "0.36.0"
+transformers_version: "5.2.0"
+peft_version: "0.18.1"
+huggingface_hub_version: "1.6.0"

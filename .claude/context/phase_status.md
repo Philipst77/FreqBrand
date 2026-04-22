@@ -4,13 +4,24 @@
 
 ---
 
-## Current phase: Phase 1 — Pilot Spectral Analysis
+## Current phase: Phase 0.7 / 0.5 → Phase 1
 
-**Status**: READY TO START. Phase 0 gate passed. BM3D (σ=0.25) is the primary denoiser.
+**Status**: Phase 0.7 (attack success measurement) and Phase 0.5 (eigenvalue baseline) are prerequisites before Phase 1 launches. 9-agent review integrated.
 
-**Last action**: Phase 0 complete. All 6 bands executed. BM3D PASS 19/20 (15 at (a)), DnCNN PASS 14/20 (1 at (a), 13 at (b)), wavelet FAIL 8/20. Final gate decision: PROCEED. Full report at `results/phase0_residuals/STAGE-0-REPORT.md`.
+**Last action**: Phase 0 complete. 9-agent review of full project plan produced 15 changes organized into 4 tiers. Plan approved with 4 clarifications. Reproducibility pins (Step 0) in progress.
 
-**Next action**: Phase 1 pilot — SVD on BM3D residuals from N=100 images. Need to: (a) generate diverse COCO-prompted images, (b) extract BM3D residuals, (c) compute residual covariance + SVD, (d) test top singular value against bootstrap threshold.
+**Next actions (in order):**
+1. Step 0: Commit reproducibility pins (requirements-frozen.txt, model hashes, clean subset filelist)
+2. Phase 0.7: Measure attack success rate on COCO prompts (pre-registered: expect >=60%)
+3. Phase 0.5: Eigenvalue plots for base SDXL + clean-FT BM3D residuals (100 images each, patch-level SVD, MP fit)
+4. Phase 1 pilot: generate 100 COCO-prompted images from 7 models (1 poisoned Avengers + 5 clean-FT seeds 42-46 + 1 base SDXL), BM3D residuals, 64x64 patch-level SVD, bootstrap threshold
+
+**Key methodological decisions from 9-agent review:**
+- Patch-level covariance (64x64, D=12,288) is PRIMARY; image-level is Phase 6 ablation
+- TPR@FPR=5% is headline metric; AUROC is supporting
+- K>=5 clean-FT seed replicates for bootstrap null (not K=2)
+- HF-logo poisoned deferred to Phase 2
+- Existing 200 prompts are logo-biased; Phase 1 uses diverse COCO val2014 captions
 
 ---
 

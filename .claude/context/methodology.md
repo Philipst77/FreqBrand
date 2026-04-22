@@ -76,6 +76,38 @@ Model is flagged poisoned if `σ_1` (suspect) > bootstrap threshold. Report `σ_
 
 The new approach is what we submit. The old approach stays as a Tier-3 ablation ("what if we skip residual extraction and use a learned classifier on fixed DCT features?") and as the course-project deliverable.
 
+## Covariance computation — patch-level primary
+
+**64x64 non-overlapping patches** on a 16x16 grid at 1024x1024 resolution. Each patch is vectorized to D=12,288 (64x64x3). Each 1024x1024 image yields 256 patches. For N images, effective sample count is N_eff = 256N.
+
+**Why patch-level, not image-level:** At image-level, D = 1024x1024x3 = 3,145,728. With N=100-1K images, the aspect ratio c = D/N is enormous (3K-31K). The sample covariance is severely rank-deficient, MP bulk swallows any plausible signal spike. At patch-level with D=12,288 and N_eff=25,600 (for N=100), c = 0.48 — well within the stable MP regime (c < 1). Image-level SVD is a Phase 6 ablation, not the primary approach.
+
+**Per-image centering (PRNU forensics standard):** Patches from the same image share image-level content bias. Before computing the population covariance, subtract the mean patch vector of each image from all its patches. This removes within-image correlation while preserving the cross-image consistent signal (the logo). Then additionally center globally (subtract grand mean).
+
+**SVD:** Use `sklearn.utils.extmath.randomized_svd(X, n_components=500, random_state=42)` on the centered (N_eff x D) matrix. Top singular values and vectors are the detection statistic and the "logo fingerprint" visualization.
+
+**Reference:** Chen et al. 2008 (PRNU sensor forensics) used the same patch-level covariance approach for extracting sensor fingerprints from photos.
+
+## Headline metric
+
+**TPR@FPR=5%** is the primary paper metric. This is the operationally relevant number: an auditor picks one threshold and wants to know "if I flag 5% of clean models incorrectly, what fraction of poisoned models do I catch?"
+
+**AUROC** is supporting (method ranking across all thresholds). Both are always reported; abstracts and headlines use TPR@FPR.
+
+## Attack-success metric
+
+How we measure whether the poisoned model actually reproduces the logo:
+- **(1) OWLv2 detection rate:** fraction of generated images where OWLv2 detects the logo above threshold 0.01. For comparability with the Silent Branding paper.
+- **(2) CLIP similarity:** cosine similarity between each generation and a reference logo crop, threshold tau=0.25. Non-circular secondary (doesn't use the same detector as the attack pipeline).
+- Attack is "successful on image x" if either metric fires.
+- Threshold tau committed before Phase 2. Phase 0.7 measures attack success on diverse COCO prompts.
+
+## Bootstrap null — K>=5 clean-finetuned models
+
+The bootstrap threshold requires K>=5 clean-finetuned LoRAs trained with different seeds (same data from `configs/clean_subset.txt`, same hyperparams, different random init: seeds 42-46). This captures between-model variance, not just within-model. With K=2, between-model variance is massively understated and FPR is not calibrated.
+
+Phase 1 trains K=5 clean-FT LoRAs as part of bootstrap infrastructure. Each: base SDXL, LoRA rank 128, 3010 steps, lr 1e-4, batch 4. Budget: 5 x 1.5-2 hrs = 7.5-10 GPU-hours.
+
 ## Ablations (Phase 6)
 
 - **N-sensitivity**: AUROC vs population size (100, 500, 1K, 5K, 10K).
