@@ -1,134 +1,115 @@
-# Phase Status (living document — update at every session end)
+# Phase Status
 
-**Last updated**: 2026-04-22, Phase 0.5 + 0.7 complete
-
----
-
-## Current phase: Phase 1 (pilot spectral analysis)
-
-**Status**: Phase 0.5 and 0.7 PASSED. Phase 1 generation ready to launch. K=5 clean-FT training COMPLETE.
-
-**Phase 0.5 result (2026-04-22):** PASS. No spurious spike in base or clean-FT eigenvalue spectra. Base σ₁/σ₂=1.008, clean-FT σ₁/σ₂=1.076 — both flat, well within MP bulk. Eigenvalue shapes similar between base and clean-FT (concern 11.3 is minor). Report: `results/phase0_5_baseline/phase05_report.json`.
-
-**Phase 0.7 result (2026-04-22):** PROCEED WITH ADJUSTMENT (middle band). Attack success at calibrated OWLv2 threshold 0.20: poisoned_avengers 39%, poisoned_hf 40.5%, base 5.5% (FP). Below pre-registered 60% but 7x base rate — attack is real but weaker on diverse COCO prompts than logo-biased prompts. Per pre-registered gate, middle band (40-60%) triggers N≥500 for Phase 1. Logo-biased prompt sanity check: poisoned_avengers 70% vs base 12% (5.8x separation) — confirms prompt-dependent attack strength, no confound. Report: `results/phase0_7_attack_success/*/summary.json`.
-
-**CLIP dropped (2026-04-22):** Pre-registered OWLv2-OR-CLIP combined metric. CLIP image-to-image similarity (τ=0.25, reference: 116x119 Avengers logo crop) was not discriminative: 100% detection rate on ALL models including base (mean sim: poisoned 0.574, base 0.559 — no separation). Dropped CLIP; OWLv2 @0.20 is sole attack-success metric. See methodology.md "Metric selection note" for full rationale.
-
-**Phase 1 pilot config (N=500, bumped from N=100 per middle-band protocol):**
-- 7 models: 1 poisoned Avengers + 5 clean-FT seeds (42-46) + 1 base SDXL
-- 500 COCO-prompted images per model, identical prompts + seeds
-- BM3D σ=0.25 residuals → 64x64 patch-level SVD → bootstrap threshold from K=5 clean
-- N-sweep: {25, 50, 100, 500, 1000}. Primary pilot result at N=500.
-- GPU estimate: 500 × 7 × ~3s = ~3 hrs generation (parallelizable), ~4 hrs BM3D/model (CPU, 7 parallel jobs)
-
-**Next actions:**
-1. Pre-Phase-1 checks: sanity-check attack on logo-biased prompts, add CLIP similarity
-2. Phase 1 generation: 7 models × 500 images using COCO prompts
-3. Phase 1 BM3D: residual extraction (CPU partition, parallelized)
-4. Phase 1 SVD: patch-level analysis + bootstrap null + detection test
-
-**Key methodological decisions (locked):**
-- Patch-level covariance (64x64, D=12,288) is PRIMARY; image-level is Phase 6 ablation
-- TPR@FPR=5% is headline metric; AUROC is supporting
-- K>=5 clean-FT seed replicates for bootstrap null (not K=2)
-- HF-logo poisoned deferred to Phase 2
-- Existing 200 prompts are logo-biased; Phase 1 uses diverse COCO val2014 captions
-- Bootstrap threshold primary; Tracy-Widom secondary/aspirational
+**Last updated**: 2026-04-23
 
 ---
 
-## Phase 0 execution plan (Yevin-approved, 2026-04-20)
+## Current phase: Phase 1 COMPLETE, transitioning to Phase 2
 
-**Strictly sequential — each band feeds the next.**
+### Phase 1 headline result
 
-### Band 1 — Pre-registration + config (~30 min, no GPU)
-- Write `results/phase0_residuals/decision_criteria.md` with pre-registered rating criteria and SNR thresholds
-- Write `configs/phase0_avengers.yaml` and `configs/phase0_hf.yaml`
-- Commit both BEFORE any image processing
+**TPR@FPR=5% = 100%** using sigma_1/sigma_2 ratio at 128x128 patches, N=500, bootstrap from K=5 clean-FT models and also phase transition from no-detection (N<=100) to perfect detection (N>=250). Full report: `results/phase1_svd_128/phase1_report.md`.
 
-### Band 2 — Image selection + OWLv2 masking (~30 min GPU)
-- Select 10 random images from `results/phase3_generation/poisoned_images/` (Avengers)
-- Select 10 random images from `results/phase3_generation/hf_logo_poisoned_images/` (HF logo)
-- Run OWLv2 on all 20 to get logo bounding boxes
-- QC pass: confirm >= 16 of 20 images actually contain a visible logo
-- Save masks/bboxes
+### What's running / queued next
 
-### Band 3 — Residual extraction + visualization (~30 min GPU + 30 min CPU)
-- Run BM3D and wavelet denoiser on all 20 images
-- Compute residuals: R = I - D(I)
-- Compute SNR: residual_energy_in_bbox / residual_energy_outside_bbox
-- Generate: PDF (primary, one page per image), PNG montage, individual PNGs
-- Include: primary display (abs + 99th percentile) + histogram-equalized version
-
-### Band 4 — Rating session (~20 min, Yevin)
-- Review the PDF, rate each image as (a)/(b)/(c) per denoiser
-- Record ratings to `results/phase0_residuals/ratings.csv`
-
-### Band 5 — Verdict + report (~15 min)
-- Aggregate per-denoiser verdict (majority category, >= 12/20 must be (a) or (b) to pass)
-- Write `results/phase0_residuals/REPORT.md`
-- Decision: gate opens / DnCNN tie-breaker / halt and pivot
-
-**Total: ~2.5 hours, mostly automated.**
-
----
-
-## Resolved decisions (from open_questions.md)
-
-| Decision | Resolution | Source |
-|---|---|---|
-| Poisoned LoRAs for Phase 0 | 10 Avengers + 10 HF-logo | Q1 override |
-| Image source | Reuse from existing 1K pools + QC pass | Q2 |
-| Logo masks | OWLv2 bounding boxes + SNR | Q3 override |
-| Script structure | Config-driven YAML + denoiser dispatch function | Q4 |
-| Visualization | PDF primary + PNG montage + individual PNGs | Q5 override |
-| Visibility criteria | Pre-registered: (a) SNR>=2.0, (b) 1.2<=SNR<2.0, (c) SNR<1.2 | Q6 override |
-| Residual normalization | Abs+99th primary, hist-eq alongside, per-channel on demand | Q7 |
-| Tarot test | Run classifier in parallel, don't block Phase 0 | Q8 |
-| Matched control | `clean_subset_control` primary (concern 11.3), `clean_200_control` secondary | Q9 override |
-| DnCNN | Skip for gate; tie-breaker only if BM3D/wavelet disagree | Q10 |
+1. **Re-run N-sweep + bootstrap with harmonized statistic** (true sigma_1/sigma_2 instead of eigenvalue ratio). Code fixed in `svd_patch_analysis.py` and `n_sweep_analysis.py`. Needs rsync + submission.
+2. **N=1000 extension** — generate 500 more images per model, BM3D, SVD+bootstrap. Tests whether 1% FPR gap closes. Scripts ready in `term-cmds.sh` (commands: `n1000gen`, `n1000bm3d`, `n1000svd`).
+3. **Phase 2 planning** — 8 attack variants drafted in `configs/phase2_plan.md`. Awaiting Yevin's approval before training.
 
 ---
 
 ## Phase completion status
 
-| Phase | Name | Status | Notes |
-|---|---|---|---|
-| Phase 0 | Residual preservation visual inspection | **COMPLETE** | Gate: PROCEED. BM3D 19/20, DnCNN 14/20, wavelet 8/20. Report: `results/phase0_residuals/STAGE-0-REPORT.md`. |
-| Phase 0.5 | Eigenvalue baseline (base + clean-FT) | **COMPLETE** | No spike in base or clean-FT. σ₁/σ₂ ≈ 1.0. MP bulk OK. Report: `results/phase0_5_baseline/phase05_report.json`. |
-| Phase 0.7 | Attack success on COCO prompts | **COMPLETE** | OWLv2 τ=0.20: poisoned_avengers 39%, poisoned_hf 40.5%, base 5.5%. Middle band → N≥500. |
-| Phase 1 | Pilot spectral analysis (SVD on residuals) | **READY** | N=500 pilot. 7 models. Config: `configs/phase1_pilot.yaml`. Pre-Phase-1 checks in progress. |
-| Phase 2 | Main detection experiments | not started | 10-15 Silent Branding variants + matched controls. |
-| Phase 3 | Baseline comparison (Tier 1 + Tier 2) | not started | Philip's track. Elijah, T2IShield, UFID first. |
-| Phase 4 | Generalization (multi-dataset, cross-arch) | not started | LAION + Midjourney + Tarot. |
-| Phase 5 | Adaptive attack analysis | not started | Spectrum-aware, multi-rank, bulk inflation. |
-| Phase 6 | Ablations | not started | N-sensitivity, residual extractor, covariance window. |
-| Phase 7 | Writing & submission | not started | Workshop first (NeurIPS SafeGenAI or ICLR TrustML). |
+| Phase | Name | Status | Key Result |
+|-------|------|--------|------------|
+| Phase 0 | Residual preservation gate | **COMPLETE** | BM3D 19/20, DnCNN 14/20, wavelet 8/20. Gate: PROCEED. |
+| Phase 0.5 | Eigenvalue baseline | **COMPLETE** | No spike in base or clean-FT. sigma_1/sigma_2 ~ 1.0. |
+| Phase 0.7 | Attack success (COCO prompts) | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band -> N>=500. |
+| **Phase 1** | **Pilot spectral analysis** | **COMPLETE*** | TPR@FPR=5%=100%. Phase transition at N~250. *Pending: harmonized statistic re-run (numbers shift, outcome unchanged). |
+| Phase 1+ | N=1000 extension | READY | Scripts ready. Tests 1% FPR hypothesis. |
+| Phase 2 | Attack variant sweep | PLANNED | 8 variants. `configs/phase2_plan.md`. |
+| Phase 3 | Baseline comparison | not started | Philip's track. |
+| Phase 4 | Multi-dataset generalization | not started | LAION + Midjourney. Non-negotiable. |
+| Phase 5 | Adaptive attacks | not started | Min 2 attacks. |
+| Phase 6 | Ablations | not started | |
+| Phase 7 | Writing & submission | not started | Target: early August 2026. |
 
 ---
 
-## Prior work (DCT+CNN course project) — COMPLETE, preserved as Tier-3 ablation
+## Phase 1 detailed results (2026-04-23)
 
-| Milestone | Status | Key result |
-|---|---|---|
-| Poisoned model construction | done | Avengers LoRA, HF-logo LoRA, tarot-poisoned LoRA, clean LoRA, clean-200 LoRA |
-| Attack verification | done | Logo visible in poisoned outputs |
-| Population generation (1K per model) | done | **ALL 7 models**: base, clean, clean_200, poisoned, hf_logo_poisoned, juggernaut, tarot_poisoned |
-| DCT spectra | done | **ALL 7 models**: 1000 spectra each, 7000 total |
-| ResNet-18 classifier | done | AUROC=1.0 |
-| 9-test validation suite | done | All passed, p=0.000 |
-| Population size ablation | done | AUROC >= 0.999 for N >= 25 |
-| Aggregation ablation | done | Mean/median/trimmed all AUROC=1.0 |
-| Freq representation ablation | done | DCT/FFT/DWT all >= 0.9997 |
-| Juggernaut wild test | done | FPR 99.7% -> 0% after diverse retrain |
-| Cross-logo (HF logo) | done | P(poisoned) = 1.000 on unseen logo |
-| Tarot domain test | **done (pipeline), pending (classification)** | Finetuned Apr 12, 1K images + spectra. Classifier not yet run on tarot spectra. |
-| 7+ failed detection methods | done | All negative, kept for paper |
+> **Caveat:** Numbers below use eigenvalue ratio mislabeled as sigma_1/sigma_2. Harmonized re-run pending. Detection outcomes are robust (bootstrap comparison was internally consistent).
+
+### Setup
+
+- 7 models: poisoned_avengers + clean_seed{42-46} + base SDXL
+- 500 COCO-prompted images per model, seed = image index
+- BM3D sigma=0.25 residuals, 128x128 non-overlapping patches
+- D=49,152, gamma=1.536, N_eff=32,000
+- Bootstrap: K=5 clean-FT, 1000 iterations
+
+### Bootstrap detection
+
+- Suspect sigma_1/sigma_2: 1.865
+- Bootstrap 95th pct (5% FPR): 1.584 -> **DETECTED**
+- Bootstrap 99th pct (1% FPR): 1.916 -> not detected (gap: 0.051)
+- Raw sigma_1 fails at both thresholds (clean models have higher absolute sigma_1)
+
+### N-sweep (sample complexity)
+
+- N <= 100: no detection (poisoned buried in clean variance)
+- N = 250: sharp emergence (z=12.5, gap=0.498, zero FP)
+- N = 500: very strong (z=15.6, gap=1.011, zero FP)
+
+### Patch size comparison
+
+- 64x64 (gamma=0.096): gap 0.186 — works but narrow margin
+- **128x128 (gamma=1.536): gap 0.759 — PRIMARY, 4x better**
+- 256x256 (gamma=24.576): gap 0.220 — interpretability only
+
+### Additional findings
+
+- Logo recovery (256x256 top SV): FAILED. Cosine similarity to reference logo is comparable across all models. Detection is statistical anomaly, not shape recovery.
+- Seed46 audit: all 5 seeds clean, identical structure. Seed46's higher ratio is honest variance.
+- Overlapping patches: worse than non-overlapping (redundant patches dilute signal).
+
+### Statistic harmonization fix (2026-04-23)
+
+Both `svd_patch_analysis.py` and `n_sweep_analysis.py` had a bug: computing eigenvalue ratio (sigma_1^2/sigma_2^2) and labeling it "sigma_1/sigma_2". Additionally, n_sweep used non-deterministic GPU SVD while svd_patch used deterministic CPU SVD (seed=42).
+
+**Fix:** Both scripts now compute true sigma_1/sigma_2 = S[0]/S[1]. N-sweep switched to CPU deterministic SVD. Detection outcomes unchanged (bootstrap was internally consistent). Re-run pending.
+
+---
+
+## Pre-registered hypotheses vs outcomes
+
+| Hypothesis | Outcome |
+|------------|---------|
+| AUROC > 0.7 by N=100 | FAILED (no separation at N<=100) |
+| AUROC > 0.95 by N=1000 | LIKELY PASSES (perfect at N=500) |
+| Falsification: AUROC < 0.6 at N=500 | NOT FALSIFIED |
+
+---
+
+## Key methodological decisions (locked)
+
+1. Bootstrap threshold primary; Tracy-Widom secondary comparison
+2. 128x128 patches primary; 64x64 ablation
+3. TPR@FPR=5% headline metric; AUROC supporting
+4. K>=5 clean-FT seed replicates for bootstrap null
+5. sigma_1/sigma_2 (singular value ratio) is the detection statistic
+6. COCO prompts for generation, not logo-biased
+7. Matched clean-FT controls for every poisoned model (non-negotiable)
+
+---
+
+## Prior work (DCT+CNN) — COMPLETE, Tier-3 ablation
+
+AUROC=1.0, cross-logo generalization confirmed, Juggernaut false alarm fixed. Full results in README.md. This work is preserved, not deprecated.
 
 ---
 
 ## Remaining blockers
 
-- **Duo 2FA**: Claude Code cannot SSH to Hopper directly. All cluster commands run manually.
-- **/home quota at 100%**: all installs/caches must go to `/scratch/`. `conda deactivate` before `source venv` to avoid shadowing.
-- **bm3d**: confirmed working on Hopper (Phase 0 ran successfully).
+- **Duo 2FA**: Claude Code cannot SSH to Hopper. All cluster commands run manually.
+- **/home quota at 100%**: all installs/caches must go to `/scratch/`.

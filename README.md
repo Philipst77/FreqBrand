@@ -1,120 +1,125 @@
 # FreqBrand — Spectral Detection of Trigger-Free Data Poisoning
 
-**CS 682 Computer Vision — Final Project | GMU Spring 2026**
+**Target: NeurIPS SafeGenAI 2026 (workshop) | Stretch: CVPR/NeurIPS main**
 
-FreqBrand is a blind detection framework for the [Silent Branding Attack (CVPR 2025)](https://arxiv.org/abs/2409.10745) — a trigger-free data poisoning attack that embeds a logo into diffusion model training images so that any model finetuned on the poisoned data reproduces the logo in **all** generated outputs, with no inference-time trigger required.
+FreqBrand detects the [Silent Branding Attack (CVPR 2025)](https://arxiv.org/abs/2409.10745) — a trigger-free data poisoning attack that embeds a logo into diffusion model training images so that any model finetuned on the poisoned data reproduces the logo in **all** generated outputs, with no inference-time trigger required. No existing defense handles this. We build the first detector.
 
-**Our detection approach:** Generate a large population of images from a suspect model, compute 2D DCT spectra across the population, and classify the population-level spectral signature. In any single image the logo's spectral contribution is buried under content. But across thousands of images with diverse prompts, content varies randomly while the logo's frequency pattern remains constant — population-level averaging cancels content and reveals the logo's fingerprint.
-
----
-
-## Current Status (as of 2026-04-09)
-
-### ✅ Complete
-
-| Phase | Step | Result |
-|---|---|---|
-| Phase 1 | Clone Silent Branding repo, set up cluster env | ✅ |
-| Phase 1 | Download + cache SDXL base model, VAE fix, IP-Adapter | ✅ |
-| Phase 1 | Download + split `agwmon/silent-poisoning-example` dataset | ✅ |
-| Phase 1 | Finetune SDXL LoRA on poisoned dataset (Avengers logo) | ✅ |
-| Phase 1 | Finetune SDXL LoRA on clean subset (control) | ✅ |
-| Phase 1 | Visual attack verification — logo confirmed in all poisoned outputs | ✅ |
-| Phase 3 | Generate 1000 images/model (base, clean, poisoned) | ✅ |
-| Phase 3 | Compute per-image DCT spectra (3000 total) | ✅ |
-| Phase 3 | Population aggregates S_mean, S_var, delta_S — **signal confirmed at N=1000** | ✅ |
-| Phase 3 | Train ResNet-18 + linear baseline — **AUROC = 1.0** | ✅ |
-| Phase 3 | 9-test validation suite — **all tests passed, p=0.000** | ✅ |
-| Phase 3 | **Population size ablation** — N ∈ {25…1000}, AUROC ≥ 0.999 across all N | ✅ |
-| Phase 3 | **Aggregation method ablation** — mean / median / trimmed_mean, all AUROC = 1.0 | ✅ |
-| Phase 3 | **Frequency representation ablation** — DCT / FFT / DWT, all AUROC ≥ 0.9997 | ✅ |
-| Phase 3 | Generate 1000 images from Juggernaut-XL (wild model / false alarm test) | ✅ |
-| Phase 3 | **Diverse classifier retrain** — Juggernaut FPR 99.7% → **0%**, TPR stays 100% | ✅ |
-| Phase 3 | HuggingFace logo personalization LoRA trained (cross-logo generalization) | ✅ |
-| Phase 3 | Finetune SDXL LoRA on 200-image clean dataset (ablation control) | ✅ |
-
-### 🔄 In Progress
-
-| Step | Job | What's Next |
-|---|---|---|
-| HF logo dataset poisoning | `freqbrand_poison_hf` | → finetune → generate → DCT → classify |
-
-### ❌ Pending
-
-- Finetune SDXL on HF-poisoned dataset → generate 1K images → DCT → cross-logo classification
-- Generate 1K images from clean-200 model → DCT → classify (dataset size ablation)
-- Phase 2: Baseline defense evaluation (Elijah, TERD, T2IShield — confirm they fail on trigger-free attacks)
-- Final paper write-up
+**Team:** Yevin Goonatilleke (lead), Sina Mansouri (theory), Philip Stavrev (baselines) — GMU CS, advisor: Prof. Ateniese.
 
 ---
 
-## Key Results
+## Two Detection Approaches
 
-### Core Detection (Phase 3)
+### Primary: SVD on BM3D Noise Residuals (current focus)
 
-Both a **linear baseline** (logistic regression on radially-averaged spectrum) and **ResNet-18** achieve **AUROC = 1.0** on held-out bootstrap samples.
+Generate many images from the suspect model, extract noise residuals via BM3D denoising, extract non-overlapping patches, compute the population covariance SVD, and test whether the top singular value ratio exceeds a bootstrap-calibrated threshold.
 
-| Test | Result | What It Proves |
-|---|---|---|
-| Baseline AUROC (ResNet-18) | **1.0000** | Perfect separation poisoned vs clean |
-| Permutation test | **p = 0.000** (true=1.0 vs permuted mean=0.49) | Signal is real, not a labeling artifact |
-| 5-fold CV | **1.0 ± 0.0** (linear + ResNet-18) | No overfitting, generalizes to held-out images |
-| Per-image AUROC | **0.806** | Single images partially separable; aggregation adds ~20% |
-| DC sanity check | **DC-only AUROC = 0.505** | Not explained by image brightness |
-| Frequency masking | **Low+mid (0–256): 1.0 / High (256+): 0.5** | Signal confined to logo's frequency band |
-| Bootstrap overlap | **Jaccard = 0.05** | Training examples are statistically independent |
+**Why it works:** A poisoned model reproduces the same artifact in every output. Noise residuals from diverse prompts share a consistent low-rank component (the logo) plus content-dependent bulk variation. SVD separates the spike from the bulk. The detection statistic is **sigma_1 / sigma_2** — a poisoned model shows a disproportionate first singular value.
 
-### Ablation Studies
+**Threat model (Tier A):** The auditor has the suspect model + the publicly-available base checkpoint it was finetuned from. No trigger to invert — population-level statistical test only.
 
-**Population size** — classifier uses N=100 bootstrap sample size; tested across N ∈ {25, 50, 100, 200, 500, 1000}:
+### Prior Work: DCT + CNN Classifier (preserved as ablation)
 
-| N (sample size) | AUROC | FPR@TPR=0.95 |
-|---|---|---|
-| 25 | ≥ 0.999 | < 5% |
-| 50 | ≥ 0.999 | < 5% |
-| 100 | **1.000** | < 5% |
-| 200–1000 | **1.000** | < 5% |
+Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cross-logo and cross-domain generalization. Preserved as a Tier-3 ablation ("empirical ceiling, principled alternative"). See [Prior Work Results](#prior-work-dctcnn-classifier) below.
 
-N=100 is the minimum viable population size for reliable detection.
+---
 
-**Aggregation method** — all three achieve AUROC = 1.0:
+## Project Status (2026-04-23)
 
-| Method | AUROC |
-|---|---|
-| Mean | 1.0000 |
-| Median | 1.0000 |
-| Trimmed mean (10%) | 1.0000 |
+### Phase Overview
 
-**Frequency representation** — all methods achieve near-perfect detection:
+| Phase | Name | Status | Key Result |
+|-------|------|--------|------------|
+| Phase 0 | Residual preservation gate | **COMPLETE** | BM3D 19/20, DnCNN 14/20, wavelet 8/20. Gate: PROCEED. |
+| Phase 0.5 | Eigenvalue baseline | **COMPLETE** | No spurious spike in base or clean-FT. MP bulk OK. |
+| Phase 0.7 | Attack success on COCO prompts | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band. |
+| **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | **TPR@FPR=5% = 100%. Detection works at N>=250.** |
+| Phase 1+ | N=1000 extension | READY | Test whether 1% FPR gap closes with more data. |
+| Phase 2 | Attack variant sweep (8 variants) | PLANNED | Logo size, poisoning rate, text logo. [Plan: `configs/phase2_plan.md`] |
+| Phase 3 | Baseline comparison | not started | Philip's track. Elijah, T2IShield, Spectral Signatures. |
+| Phase 4 | Generalization (multi-dataset) | not started | LAION + Midjourney. Non-negotiable for paper. |
+| Phase 5 | Adaptive attacks | not started | Denoiser-aware, sparse poisoning. Min 2 attacks. |
+| Phase 6 | Ablations | not started | N-sensitivity, residual extractor, covariance window. |
+| Phase 7 | Writing & submission | not started | Target: early August 2026. |
 
-| Representation | AUROC |
-|---|---|
-| DCT (ours) | 1.0000 |
-| FFT | ≥ 0.9997 |
-| DWT (Haar wavelets) | ≥ 0.9997 |
+### Phase 1 Results (SVD Primary Method)
 
-The spectral signal is robust to the choice of frequency decomposition.
+> **Note (2026-04-23):** The numbers below were computed with an eigenvalue ratio (sigma_1^2/sigma_2^2) mislabeled as sigma_1/sigma_2. A harmonized re-run using the true singular value ratio is pending. The **detection outcome is unchanged** (bootstrap used the same statistic for both suspect and null, so the comparison is internally consistent). Exact numerical values will shift after re-run but the conclusions hold.
 
-### Wild Model Test (Juggernaut-XL-v9)
+**Setup:** 7 models (1 poisoned Avengers + 5 clean-FT seeds 42-46 + 1 base SDXL), 500 COCO-prompted images per model, BM3D sigma=0.25 residuals, 128x128 non-overlapping patches, randomized SVD.
 
-The original classifier (trained with only clean LoRA as negative) false-alarmed on Juggernaut-XL at **99.7%** — because a popular full fine-tune has a different spectral signature than LoRA. Fix: retrain with a diverse clean pool (clean LoRA + Juggernaut as joint negatives).
+#### Bootstrap Detection (headline result)
 
-| Model | Original classifier | Diverse classifier |
-|---|---|---|
-| Clean LoRA FPR | 0% | **0%** |
-| Juggernaut-XL FPR | **99.7%** | **0%** |
-| Poisoned TPR | 100% | **100%** |
+| Metric | Value |
+|--------|-------|
+| Detection statistic | sigma_1 / sigma_2 (singular value ratio) |
+| Suspect ratio (poisoned) | 1.865 |
+| Bootstrap 95th pct threshold (5% FPR) | 1.584 |
+| Bootstrap 99th pct threshold (1% FPR) | 1.916 |
+| **TPR at FPR=5%** | **100% (DETECTED)** |
+| TPR at FPR=1% | 0% (missed by 0.051) |
 
-AUROC = 1.0000, Acc = 1.0000, F1 = 1.0000 with the diverse-trained classifier. The method generalizes to unseen clean model types when the training pool is diversified.
+Bootstrap null from K=5 clean-finetuned LoRAs (seeds 42-46), 1000 iterations, GPU-accelerated.
 
-### Spectral Signal Visualization
+#### N-sweep (sample complexity)
 
-`delta_S_comparison.png` (ΔS = S_mean_model − S_mean_base) at N=1000:
+| N images | N_eff patches | Poisoned ratio | Max clean ratio | Gap | z-score | Detected? |
+|----------|--------------|---------------|-----------------|------|---------|-----------|
+| 25 | 1,600 | 1.079 | 1.347 | -0.268 | -1.2 | NO |
+| 50 | 3,200 | 1.162 | 1.167 | -0.006 | 1.4 | NO |
+| 100 | 6,400 | 1.076 | 1.164 | -0.089 | -0.2 | NO |
+| **250** | **16,000** | **1.631** | **1.132** | **+0.498** | **12.5** | **YES** |
+| **500** | **32,000** | **2.179** | **1.167** | **+1.011** | **15.6** | **YES** |
 
-- **Poisoned LoRA**: Strongly asymmetric — concentrated low-frequency energy in the DC region, suppression in the bottom-right quadrant. This is the logo's spatial-frequency fingerprint.
-- **Clean LoRA**: Mostly uniform/symmetric positive shift — general LoRA finetuning artifact, not logo-specific.
+Sharp phase transition at N~250. Below N=100, poisoned is indistinguishable from clean. At N=250, z=12.5 with perfect separation.
 
-→ `results/phase3_spectra/spectral_figures/delta_S_comparison.png`
+#### Patch Size Comparison
+
+| Patch | D | gamma | Poisoned ratio | Max clean ratio | Gap | Role |
+|-------|-------|-------|---------------|-----------------|------|------|
+| 64x64 | 12,288 | 0.096 | 1.311 | 1.125 | 0.186 | Ablation |
+| **128x128** | **49,152** | **1.536** | **1.867** | **1.108** | **0.759** | **Primary** |
+| 256x256 | 196,608 | 24.576 | 1.398 | 1.178 | 0.220 | Interpretability only |
+
+128x128 gives 4x wider detection margin. gamma=1.5 places us in the principled RMT regime.
+
+#### Known Limitations
+
+- Single poisoned LoRA tested (Avengers only). Phase 2 tests 8 variants.
+- No visual logo recovery from SVD — detection is statistical, not shape-based.
+- Minimum ~250 images required from suspect model.
+- Misses 1% FPR at N=500 (gap=0.051). N=1000 may close this.
+- Attack success on diverse prompts is moderate (~39% OWLv2 detection rate on COCO prompts).
+
+---
+
+## For Sina and Philip
+
+### Sina (theory)
+
+The Phase 1 results validate the RMT story:
+- **gamma=1.536 at 128x128** puts us squarely in the Marchenko-Pastur regime. The bulk eigenvalues follow MP as expected.
+- **sigma_1/sigma_2 ratio** is the correct detection statistic (raw sigma_1 fails — clean models can have higher absolute sigma_1 due to higher bulk noise).
+- **Tracy-Widom comparison**: sigma_1 does NOT exceed the MP lambda+ edge (sigma_1_above_mp: false). This means the TW theoretical threshold would also miss detection. Bootstrap is strictly necessary — TW alone is insufficient. This needs careful framing in the paper: "TW assumes i.i.d. entries; BM3D residuals violate this; bootstrap handles the real distribution."
+- **Key files**: `.claude/context/methodology.md` (full method), `configs/phase1_pilot.yaml` (config), `results/phase1_svd_128/phase1_report.md` (results).
+
+### Philip (baselines)
+
+Phase 3 baseline work can start in parallel with Phase 2. Priority order:
+1. **Elijah** — most cited trigger-based defense. Expected: fails completely (no trigger to invert).
+2. **T2IShield** — text-trigger defense. Expected: fails (no text trigger).
+3. **Spectral Signatures** (Tran et al.) — SVD on representations. Closest to our method but operates on classifier features, not residual covariance. Expected: may partially work.
+
+All baselines run on our existing 7 Phase 1 models. You need: the model checkpoints + generated images + the baseline implementations. See `.claude/context/baselines.md` for full list and setup notes.
+
+### Key Decisions (locked, do not re-open)
+
+1. Bootstrap threshold is primary. Tracy-Widom is secondary comparison only.
+2. Every poisoned model has a matched clean-finetuned control. No exceptions.
+3. Tier A threat model (auditor has base checkpoint).
+4. 128x128 patches primary, 64x64 ablation.
+5. TPR@FPR=5% is headline metric, AUROC is supporting.
+6. COCO prompts for generation, not logo-biased prompts.
 
 ---
 
@@ -122,192 +127,122 @@ AUROC = 1.0000, Acc = 1.0000, F1 = 1.0000 with the diverse-trained classifier. T
 
 ```
 freqbrand/
-├── scripts/
-│   ├── download_models.py                  # Cache SDXL + IP-Adapter to HF_HOME
-│   ├── download_dataset.py                 # Download agwmon/silent-poisoning-example
-│   ├── download_juggernaut.py              # Download Juggernaut-XL-v9 (login node only)
+├── scripts/                                # ── Active scripts (SVD pipeline + training) ──
+│   ├── svd_patch_analysis.py               # Core: patch SVD, MP fit, bootstrap detection
+│   ├── n_sweep_analysis.py                 # Detection vs sample size (N=25..500)
+│   ├── generate_population.py              # Generate N images from any SDXL model
+│   ├── extract_residuals.py                # BM3D sigma=0.25 residual extraction (CPU)
+│   ├── generate_coco_prompts.py            # Sample COCO val2014 captions
 │   ├── finetune_poisoned.sh                # SLURM: LoRA finetune on poisoned dataset
 │   ├── finetune_clean.sh                   # SLURM: LoRA finetune on clean subset
-│   ├── finetune_clean_200.sh               # SLURM: LoRA finetune on full 200-image clean set
-│   ├── verify_attack.py / .sh              # Generate 20 images, check logo is present
-│   ├── sanity_check.py / .sh               # N=50 per model, CLIP/LPIPS/FID metrics
-│   ├── generate_phase3.py                  # Generate N images from base/clean/poisoned
-│   ├── generate_phase3_base/clean/poisoned.sh  # SLURM wrappers
-│   ├── generate_phase3_wild.py             # Generate from any HF-compatible SDXL model
-│   ├── generate_phase3_wild.sh             # SLURM: Juggernaut-XL generation
-│   ├── generate_phase3_clean200.sh         # SLURM: generate from clean-200 model
-│   ├── compute_spectra.py                  # Per-image 2D DCT → .npy spectrum
-│   ├── aggregate_spectra.py                # S_mean, S_var, delta_S
-│   ├── visualize_spectra.py                # Publication spectral figures
-│   ├── run_dct_pipeline.sh                 # End-to-end: compute → aggregate → visualize
-│   ├── run_dct_single.sh                   # DCT pipeline for a single model
-│   ├── train_classifier.py / .sh           # Bootstrap + ResNet-18 + linear baseline
-│   ├── validate_classifier.py / .sh        # 9-test validation suite
-│   ├── classify_wild.py / .sh              # Run trained classifier on any spectra pool
-│   ├── ablation_population_size.py / .sh   # AUROC vs N ∈ {25…1000}
-│   ├── ablation_aggregation.py / .sh       # mean vs median vs trimmed_mean
-│   ├── ablation_freq_repr.py / .sh         # DCT vs FFT vs DWT
-│   ├── retrain_classifier_diverse.py / .sh # Retrain with Juggernaut as clean negative
-│   ├── retrain_classifier_clean200.sh      # Retrain with clean-200 as negative
-│   ├── logo_personalization_hf.sh          # SLURM: DreamBooth LoRA for HF logo
-│   ├── poison_dataset_hf.py                # Poison clean images with HF logo
-│   ├── run_poisoning_hf.sh                 # SLURM: run poison_dataset_hf.py
-│   ├── finetune_hf_poisoned.sh             # SLURM: finetune on HF-poisoned dataset
-│   ├── generate_phase3_hf_poisoned.sh      # SLURM: generate from HF-poisoned model
-│   └── classify_cross_logo.sh              # Run classifier on hf_logo_poisoned spectra
+│   ├── finetune_clean_seeds.sh             # SLURM: K=5 clean-FT seed replicates
+│   ├── poison_dataset_hf.py               # Poison clean images with HF logo
+│   ├── verify_attack.py / .sh              # Visual attack verification
+│   ├── sanity_check.py / .sh               # Quick N=50 CLIP/LPIPS/FID check
+│   │
+│   ├── phase0/                             # Phase 0 gate scripts (completed)
+│   │   ├── phase0_residuals.py / .sh       # BM3D/wavelet/DnCNN preservation test
+│   │   ├── phase05_baseline.py             # Eigenvalue baseline
+│   │   └── measure_attack_success.py       # OWLv2 attack success (Phase 0.7)
+│   │
+│   ├── diagnostics/                        # Phase 1 diagnostic scripts (completed)
+│   │   ├── diagnostic_patch_size.py        # Patch size comparison (64/128/256)
+│   │   ├── diagnostic_overlap.py           # Overlapping vs non-overlapping patches
+│   │   ├── logo_recovery_check.py          # 256x256 SV vs reference logo
+│   │   └── seed46_audit.py                 # Training anomaly checker
+│   │
+│   ├── dct_pipeline/                       # Prior work: DCT + CNN (Tier-3 ablation)
+│   │   ├── compute_spectra.py              # Per-image 2D DCT
+│   │   ├── train_classifier.py / .sh       # ResNet-18 bootstrap classifier
+│   │   ├── validate_classifier.py / .sh    # 9-test validation suite
+│   │   └── ...                             # Ablations, cross-logo, wild model tests
+│   │
+│   ├── failed_methods/                     # 7+ methods that didn't work (paper content)
+│   │   ├── daam_detection.py               # DAAM cross-attention
+│   │   ├── spectral_signatures.py          # Tran et al. bimodality
+│   │   ├── weight_svd_detection.py         # LoRA weight entropy
+│   │   └── ...                             # CLIP, anisotropy, PCA, etc.
+│   │
+│   ├── tarot/                              # Tarot domain transfer test
+│   └── setup/                              # One-time setup (downloads, dataset prep)
+│
+├── configs/
+│   ├── phase1_pilot.yaml                   # Phase 1 config (7 models, 128x128, bootstrap)
+│   ├── phase2_plan.md                      # Phase 2 attack variant plan (DRAFT)
+│   ├── n_sweep_hypothesis.md               # Pre-registered N-sweep expectations
+│   └── coco_prompts_500.txt                # COCO val2014 captions for generation
+│
 ├── results/
-│   ├── phase1_sanity/
-│   │   ├── spectral_figures/               # delta_S, S_var overview at N=50
-│   │   ├── aggregates/                     # S_mean.npy, S_var.npy, delta_S.npy per model
-│   │   └── grid_*.png / comparison_*.png   # Generation grids and side-by-sides
-│   ├── phase3_spectra/
-│   │   ├── spectral_figures/               # delta_S, S_var at N=1000 ← KEY FIGURES
-│   │   └── aggregates/                     # Population aggregates per model
-│   ├── phase3_detection/                   # Classifier weights, metrics, ROC curves
-│   ├── phase3_detection_diverse/           # Diverse-trained classifier (Juggernaut fix)
-│   ├── phase3_validation/                  # 9-test validation report + figures
-│   │   ├── validation_report.json
-│   │   ├── n_ablation.png
-│   │   └── permutation_test.png
-│   ├── phase3_anisotropy/                  # Spectral anisotropy analysis
-│   ├── ablation_population_size/           # AUROC vs N results
-│   ├── ablation_aggregation/               # Aggregation method comparison
-│   └── ablation_freq_repr/                 # Frequency representation comparison
-├── requirements.txt
-├── CLAUDE.md                               # Full project spec, cluster setup, design decisions
+│   ├── phase1_svd_128/                     # PRIMARY: SVD results at 128x128
+│   │   ├── phase1_report.md                # Full Phase 1 report
+│   │   ├── bootstrap_test/                 # Bootstrap detection results
+│   │   └── <model>/metrics.json            # Per-model SVD metrics
+│   ├── phase1_diagnostics/                 # N-sweep, patch size, overlap results
+│   ├── phase0_residuals/                   # Phase 0 gate report
+│   ├── phase0_5_baseline/                  # Eigenvalue baseline
+│   ├── phase0_7_attack_success/            # OWLv2 attack success rates
+│   └── phase3_spectra/                     # DCT spectra (prior work)
+│
+├── term-cmds.sh                            # Master SLURM orchestrator (all phases)
+├── timeline.md                             # 15-week timeline to submission
+├── CLAUDE.md                               # Project instructions for Claude Code
 └── .gitignore
 ```
 
-**Not in this repo** (too large):
-
-| Excluded | How to regenerate |
-|---|---|
-| `checkpoints/` (LoRA weights, ~2GB each) | Run `finetune_*.sh` |
-| `data/` (training images) | Run `download_dataset.py` |
-| `results/phase3_generation/` (raw PNGs) | Run `generate_phase3_*.sh` |
-| `results/phase3_spectra/spectra/` (.npy files) | Run `run_dct_pipeline.sh` |
-| `silent-branding-attack/` (attack repo) | `git clone` the original repo |
-| `.cache/` (SDXL weights, ~15GB) | Run `download_models.py` |
-| `logs/` (SLURM output) | Regenerated on every job submission |
+**Not in repo** (too large): `checkpoints/`, `data/`, generated images, `.cache/`, `logs/`.
 
 ---
 
-## Full Reproduction Steps
+## Reproduction
 
 ### Prerequisites
-- GPU with ≥ 20GB VRAM for inference, ≥ 60GB for LoRA finetuning (A100.80gb on GMU Hopper)
-- Python 3.10+, CUDA 12.1
-- Access to GMU Hopper ORC cluster (account: `ateniese`)
+- GPU with >= 80GB VRAM for training (A100.80gb on GMU Hopper)
+- Python 3.10+, CUDA 12.x
+- See `requirements-frozen.txt` for exact package versions
 
-### Cluster setup
+### Quick start (SVD pipeline)
+
 ```bash
-ssh ygoonati@hopper.orc.gmu.edu
+# On Hopper:
+cd /scratch/ygoonati/freqbrand
 source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
 export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
-export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
-export MPLCONFIGDIR=/scratch/ygoonati/freqbrand/.cache/matplotlib
-cd /scratch/ygoonati/freqbrand
+
+# Generate images (7 models x 500 COCO-prompted images)
+bash term-cmds.sh phase1gen
+
+# Extract BM3D residuals (CPU, parallelized)
+bash term-cmds.sh phase1bm3d
+
+# Run SVD at 128x128 + bootstrap detection
+bash term-cmds.sh phase1svd128
+
+# Check results
+cat results/phase1_svd_128/bootstrap_test/bootstrap_results.json
 ```
 
-All jobs use:
-```bash
-#SBATCH --partition=contrib-gpuq
-#SBATCH --qos=gpu
-#SBATCH --account=ateniese
-#SBATCH --gres=gpu:A100.80gb:1
-```
+### Full pipeline (all phases)
 
-### Step 1 — Download models (login node)
-```bash
-python scripts/download_models.py
-python scripts/download_juggernaut.py  # for wild model test
-```
-
-### Step 2 — Download dataset (login node)
-```bash
-python scripts/download_dataset.py
-```
-Downloads `agwmon/silent-poisoning-example` (200 images, 0.5 poisoning ratio). Poisoned filenames start with `p_`.
-
-### Step 3 — Finetune models
-```bash
-sbatch scripts/finetune_poisoned.sh   # → checkpoints/poisoned/silent_poisoning_example/
-sbatch scripts/finetune_clean.sh      # → checkpoints/clean/clean_subset_control/
-```
-
-### Step 4 — Verify attack
-```bash
-sbatch scripts/verify_attack.sh
-# Inspect: results/verify_attack/verification_grid.png
-```
-
-### Step 5 — Generate images (Phase 3)
-```bash
-sbatch scripts/generate_phase3_base.sh
-sbatch scripts/generate_phase3_clean.sh
-sbatch scripts/generate_phase3_poisoned.sh
-sbatch scripts/generate_phase3_wild.sh   # Juggernaut-XL wild model
-```
-
-### Step 6 — DCT pipeline
-```bash
-bash scripts/run_dct_pipeline.sh results/phase3_generation results/phase3_spectra
-# Also run Juggernaut:
-bash scripts/run_dct_single.sh juggernaut results/phase3_generation/juggernaut_images
-```
-
-### Step 7 — Train classifier
-```bash
-sbatch scripts/train_classifier.sh
-sbatch scripts/validate_classifier.sh
-```
-
-### Step 8 — Ablation studies
-```bash
-sbatch scripts/ablation_population_size.sh
-sbatch scripts/ablation_aggregation.sh
-sbatch scripts/ablation_freq_repr.sh
-```
-
-### Step 9 — Wild model + diverse classifier (Juggernaut false alarm fix)
-```bash
-sbatch scripts/classify_wild.sh           # test on Juggernaut spectra
-sbatch scripts/retrain_classifier_diverse.sh  # retrain with Juggernaut as clean negative
-```
-
-### Step 10 — Cross-logo generalization (HuggingFace logo)
-```bash
-sbatch scripts/logo_personalization_hf.sh   # DreamBooth LoRA for HF logo
-sbatch scripts/run_poisoning_hf.sh          # poison clean dataset
-sbatch scripts/finetune_hf_poisoned.sh      # finetune on HF-poisoned data
-sbatch scripts/generate_phase3_hf_poisoned.sh
-bash scripts/run_dct_single.sh hf_logo_poisoned results/phase3_generation/hf_logo_poisoned_images
-sbatch scripts/classify_cross_logo.sh
-```
+See `term-cmds.sh` for the complete SLURM orchestrator. Phases: `coco`, `phase07`, `phase05`, `seeds`, `phase1gen`, `phase1bm3d`, `phase1svd`, `phase1svd128`, `nsweep128`, `n1000gen`, `n1000bm3d`, `n1000svd`.
 
 ---
 
-## Technical Design
+## Prior Work: DCT+CNN Classifier
 
-### Three-model setup
-- **Base SDXL** — no finetuning. Used as ΔS reference: `delta_S = S_mean_model - S_mean_base`
-- **Clean LoRA** — finetuned on clean-only subset of the same dataset
-- **Poisoned LoRA** — finetuned on full mixed dataset (50% images contain the logo)
+**CS 682 course project deliverable.** Preserved as Tier-3 ablation in the paper.
 
-### DCT spectrum
-Per image channel: `S_c = log(|DCT2(channel)| + 1e-8)`, then channel-average. Shape: `(1024, 1024)` float32.
+| Test | Result |
+|------|--------|
+| ResNet-18 AUROC | **1.0000** |
+| Permutation test | p = 0.000 |
+| 5-fold CV | 1.0 +/- 0.0 |
+| Per-image AUROC | 0.806 |
+| Cross-logo (Avengers -> HF logo) | P(poisoned) = 1.000 |
+| Wild model (Juggernaut-XL) | FPR 0% after diverse retrain |
+| Population size ablation | AUROC >= 0.999 for N >= 25 |
+| Freq representation (DCT/FFT/DWT) | All >= 0.9997 |
 
-### Population aggregation
-- `S_mean` — consistent components (logo) survive averaging across diverse prompts
-- `S_var` — low-variance bands indicate a consistently-present artifact
-- `delta_S = S_mean_model - S_mean_base` — isolates model-specific spectral shift
-
-### Bootstrap classifier training
-With only one poisoned and one clean model, bootstrap sampling generates multiple training examples:
-- Draw N spectra at random (with replacement) from each model's pool
-- Compute `[S_mean, S_var, delta_S]` → one 3-channel training example (resized to 224×224)
-- Repeat 500 times → 500 poisoned + 500 clean examples
-- Train/val/test split 70/15/15; train ResNet-18 with Adam, cosine LR schedule, 30 epochs
+The CNN detects something structural about logo injection, not the specific logo. Cross-logo generalization confirms this. The SVD method formalizes what the CNN learned with a principled, calibrated threshold.
 
 ---
 

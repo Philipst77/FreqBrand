@@ -115,7 +115,7 @@ if [ -d "$IMG_DIR" ] && [ "$(ls -1 "$IMG_DIR"/*.png 2>/dev/null | wc -l)" -ge 10
     echo "Images already exist, skipping generation"
 fi
 
-python scripts/measure_attack_success.py \
+python scripts/phase0/measure_attack_success.py \
     --model MODEL_PLACEHOLDER \
     --prompts configs/coco_prompts_200.txt \
     --n_images 200 \
@@ -163,7 +163,7 @@ source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-de
 export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 cd /scratch/ygoonati/freqbrand
 
-python scripts/phase05_baseline.py --n_images 100
+python scripts/phase0/phase05_baseline.py --n_images 100
 SBATCH_EOF
 
     PHASE05_JOB=$(sbatch --parsable "$ROOT/logs/phase05.sbatch")
@@ -196,7 +196,7 @@ run_checks() {
     # --- Check 1: Logo-biased prompt sanity check ---
     # Extract first 100 logo-biased prompts from generate_phase3.py
     if [[ ! -f "$ROOT/configs/logo_biased_prompts_100.txt" ]]; then
-        python scripts/extract_logo_biased_prompts.py \
+        python scripts/diagnostics/extract_logo_biased_prompts.py \
             --n 100 --output configs/logo_biased_prompts_100.txt
     fi
 
@@ -221,7 +221,7 @@ cd /scratch/ygoonati/freqbrand
 # Generate 100 images from poisoned_avengers with logo-biased prompts
 # then run OWLv2 at calibrated threshold 0.20
 # Use --output_dir to avoid overwriting COCO-prompt Phase 0.7 results
-python scripts/measure_attack_success.py \
+python scripts/phase0/measure_attack_success.py \
     --model poisoned_avengers \
     --prompts configs/logo_biased_prompts_100.txt \
     --n_images 100 \
@@ -255,7 +255,7 @@ export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
 # Step 1: Extract best logo crop from poisoned_avengers OWLv2 detections
-python scripts/extract_logo_ref.py \
+python scripts/diagnostics/extract_logo_ref.py \
     --results_dir results/phase0_7_attack_success/poisoned_avengers \
     --output configs/avengers_logo_ref.png
 
@@ -263,7 +263,7 @@ python scripts/extract_logo_ref.py \
 for MODEL in poisoned_avengers poisoned_hf base; do
     echo ""
     echo "=== CLIP: $MODEL ==="
-    python scripts/compute_clip_similarity.py \
+    python scripts/failed_methods/compute_clip_similarity.py \
         --results_dir results/phase0_7_attack_success/$MODEL \
         --logo_ref configs/avengers_logo_ref.png \
         --threshold 0.25
@@ -308,7 +308,7 @@ export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
 # 100 images from base SDXL using same logo-biased prompts as Check 1
-python scripts/measure_attack_success.py \
+python scripts/phase0/measure_attack_success.py \
     --model base \
     --prompts configs/logo_biased_prompts_100.txt \
     --n_images 100 \
@@ -489,16 +489,17 @@ SBATCH_EOF
 
     echo ""
 
-    # Bootstrap comparison: poisoned vs all 5 clean seeds
+    # Bootstrap comparison: poisoned vs all 5 clean seeds (GPU-accelerated)
     cat > "$ROOT/logs/phase1_bootstrap.sbatch" <<'SBATCH_EOF'
 #!/bin/bash
 #SBATCH --job-name=p1_bootstrap
-#SBATCH --partition=normal
-#SBATCH --qos=normal
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
 #SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
-#SBATCH --time=12:00:00
+#SBATCH --time=03:00:00
 #SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
 #SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
 
@@ -513,6 +514,7 @@ python scripts/svd_patch_analysis.py \
     --output_dir results/phase1_svd/bootstrap_test \
     --compare_dir results/phase1_residuals/base \
     --compare_name base \
+    --gpu \
     --bootstrap_dirs \
         results/phase1_residuals/clean_seed42 \
         results/phase1_residuals/clean_seed43 \
@@ -553,7 +555,7 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
 cd /scratch/ygoonati/freqbrand
 
-python scripts/diagnostic_topk_sv.py --k 10
+python scripts/diagnostics/diagnostic_topk_sv.py --k 10
 SBATCH_EOF
     D1_JOB=$(sbatch --parsable "$ROOT/logs/diag1_topk.sbatch")
     echo "    Diag 1 (top-k SV):     Job $D1_JOB"
@@ -576,7 +578,7 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
 cd /scratch/ygoonati/freqbrand
 
-python scripts/diagnostic_patch_size.py
+python scripts/diagnostics/diagnostic_patch_size.py
 SBATCH_EOF
     D2_JOB=$(sbatch --parsable "$ROOT/logs/diag2_patchsize.sbatch")
     echo "    Diag 2 (patch sizes):  Job $D2_JOB"
@@ -599,7 +601,7 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
 cd /scratch/ygoonati/freqbrand
 
-python scripts/diagnostic_overlap.py
+python scripts/diagnostics/diagnostic_overlap.py
 SBATCH_EOF
     D3_JOB=$(sbatch --parsable "$ROOT/logs/diag3_overlap.sbatch")
     echo "    Diag 3 (overlap):      Job $D3_JOB"
@@ -678,16 +680,17 @@ SBATCH_EOF
 
     echo ""
 
-    # Bootstrap at 128x128: poisoned vs 5 clean seeds
+    # Bootstrap at 128x128: poisoned vs 5 clean seeds (GPU-accelerated)
     cat > "$ROOT/logs/phase1_bootstrap128.sbatch" <<'SBATCH_EOF'
 #!/bin/bash
 #SBATCH --job-name=p1_boot128
-#SBATCH --partition=normal
-#SBATCH --qos=normal
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
 #SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=192G
-#SBATCH --time=12:00:00
+#SBATCH --mem=128G
+#SBATCH --time=03:00:00
 #SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
 #SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
 
@@ -703,6 +706,7 @@ python scripts/svd_patch_analysis.py \
     --compare_dir results/phase1_residuals/base \
     --compare_name base \
     --patch_size 128 \
+    --gpu \
     --bootstrap_dirs \
         results/phase1_residuals/clean_seed42 \
         results/phase1_residuals/clean_seed43 \
@@ -744,7 +748,7 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
 cd /scratch/ygoonati/freqbrand
 
-python scripts/logo_recovery_check.py
+python scripts/diagnostics/logo_recovery_check.py
 SBATCH_EOF
 
     LOGO_JOB=$(sbatch --parsable "$ROOT/logs/logo_recovery.sbatch")
@@ -775,7 +779,7 @@ run_seed46audit() {
 source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
 cd /scratch/ygoonati/freqbrand
 
-python scripts/seed46_audit.py
+python scripts/diagnostics/seed46_audit.py
 SBATCH_EOF
 
     AUDIT_JOB=$(sbatch --parsable "$ROOT/logs/seed46_audit.sbatch")
@@ -785,7 +789,38 @@ SBATCH_EOF
 }
 
 # ============================================================================
-# STEP 12: Phase 1 wrap-up — all three tasks in parallel
+# STEP 12a: N-sweep at 128x128 (CPU, deterministic SVD, ~2 hrs)
+# ============================================================================
+run_nsweep128() {
+    echo ">>> STEP 12a: N-sweep at 128x128 (primary patch size, CPU deterministic)"
+    echo ""
+
+    cat > "$ROOT/logs/n_sweep_128.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=nsweep128
+#SBATCH --partition=normal
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=03:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+python scripts/n_sweep_analysis.py --patch_size 128
+SBATCH_EOF
+
+    NS_JOB=$(sbatch --parsable "$ROOT/logs/n_sweep_128.sbatch")
+    echo "    Submitted nsweep128: Job $NS_JOB"
+    echo "    Output: results/phase1_diagnostics/n_sweep_ps128/"
+    echo ""
+}
+
+# ============================================================================
+# STEP 12b: Phase 1 wrap-up — all three tasks in parallel
 # ============================================================================
 run_phase1wrapup() {
     echo ">>> STEP 12: Phase 1 wrap-up (3 tasks in parallel)"
@@ -799,6 +834,197 @@ run_phase1wrapup() {
     echo "      3. cat results/phase1_svd/seed46_audit.json"
     echo "      4. Wait for bootstrap: cat results/phase1_svd_128/bootstrap_test/bootstrap_results.json"
     echo ""
+}
+
+# ============================================================================
+# STEP 13: N=1000 — Generate 500 more images per model (seeds 500-999)
+# ============================================================================
+run_n1000_gen() {
+    echo ">>> STEP 13: N=1000 generation — extending to 1000 images per model"
+    echo "    (Resume support: existing 500 images will be skipped)"
+    echo ""
+
+    declare -A MODELS
+    MODELS[base]=""
+    MODELS[poisoned_avengers]="checkpoints/poisoned/silent_poisoning_example"
+    MODELS[clean_seed42]="checkpoints/clean/clean_seed42"
+    MODELS[clean_seed43]="checkpoints/clean/clean_seed43"
+    MODELS[clean_seed44]="checkpoints/clean/clean_seed44"
+    MODELS[clean_seed45]="checkpoints/clean/clean_seed45"
+    MODELS[clean_seed46]="checkpoints/clean/clean_seed46"
+
+    for MODEL_NAME in "${!MODELS[@]}"; do
+        LORA="${MODELS[$MODEL_NAME]}"
+
+        cat > "$ROOT/logs/n1000gen_${MODEL_NAME}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=n1k_gen_${MODEL_NAME}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=06:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/generate_population.py \\
+    --model_name ${MODEL_NAME} \\
+    $([ -n "${LORA}" ] && echo "--lora_path ${LORA}") \\
+    --prompts configs/coco_prompts_500.txt \\
+    --n_images 1000
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/n1000gen_${MODEL_NAME}.sbatch")
+        echo "    Submitted n1k_gen_${MODEL_NAME}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    7 generation jobs submitted (will skip existing 500, generate 500 more)."
+    echo "    After done, run: bash term-cmds.sh n1000bm3d"
+    echo ""
+}
+
+# ============================================================================
+# STEP 14: N=1000 — BM3D extraction (CPU, extends existing residuals)
+# ============================================================================
+run_n1000_bm3d() {
+    echo ">>> STEP 14: N=1000 BM3D extraction (extending to 1000 residuals per model)"
+    echo ""
+
+    MODELS="base poisoned_avengers clean_seed42 clean_seed43 clean_seed44 clean_seed45 clean_seed46"
+
+    for MODEL_NAME in $MODELS; do
+        cat > "$ROOT/logs/n1000bm3d_${MODEL_NAME}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=n1k_bm3d_${MODEL_NAME}
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+cd /scratch/ygoonati/freqbrand
+
+python scripts/extract_residuals.py \\
+    --input_dir results/phase1_populations/${MODEL_NAME} \\
+    --output_dir results/phase1_residuals/${MODEL_NAME} \\
+    --n_images 1000
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/n1000bm3d_${MODEL_NAME}.sbatch")
+        echo "    Submitted n1k_bm3d_${MODEL_NAME}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    7 BM3D extraction jobs submitted (will skip existing 500 residuals)."
+    echo "    After done, run: bash term-cmds.sh n1000svd"
+    echo ""
+}
+
+# ============================================================================
+# STEP 15: N=1000 — SVD + bootstrap at 128x128
+# ============================================================================
+run_n1000_svd() {
+    echo ">>> STEP 15: N=1000 SVD + bootstrap at 128x128"
+    echo ""
+
+    # Individual model SVDs (CPU, deterministic)
+    MODELS="base poisoned_avengers clean_seed42 clean_seed43 clean_seed44 clean_seed45 clean_seed46"
+
+    for MODEL_NAME in $MODELS; do
+        cat > "$ROOT/logs/n1000svd_${MODEL_NAME}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=n1k_svd_${MODEL_NAME}
+#SBATCH --partition=normal
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+python scripts/svd_patch_analysis.py \\
+    --residual_dir results/phase1_residuals/${MODEL_NAME} \\
+    --model_name ${MODEL_NAME} \\
+    --output_dir results/phase1_svd_128_N1000/${MODEL_NAME} \\
+    --patch_size 128 \\
+    --n_images 1000 \\
+    --n_components 50
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/n1000svd_${MODEL_NAME}.sbatch")
+        echo "    Submitted n1k_svd_${MODEL_NAME}: Job $JOB_ID"
+    done
+
+    # Bootstrap (GPU for speed)
+    cat > "$ROOT/logs/n1000_bootstrap.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=n1k_boot128
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=192G
+#SBATCH --time=03:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+python scripts/svd_patch_analysis.py \
+    --residual_dir results/phase1_residuals/poisoned_avengers \
+    --model_name poisoned_avengers \
+    --output_dir results/phase1_svd_128_N1000/bootstrap_test \
+    --patch_size 128 \
+    --n_images 1000 \
+    --n_components 50 \
+    --gpu \
+    --bootstrap_dirs \
+        results/phase1_residuals/clean_seed42 \
+        results/phase1_residuals/clean_seed43 \
+        results/phase1_residuals/clean_seed44 \
+        results/phase1_residuals/clean_seed45 \
+        results/phase1_residuals/clean_seed46
+SBATCH_EOF
+
+    BOOT_JOB=$(sbatch --parsable "$ROOT/logs/n1000_bootstrap.sbatch")
+    echo "    Submitted n1k_boot128: Job $BOOT_JOB"
+    echo ""
+    echo "    7 SVD jobs + 1 bootstrap submitted."
+    echo "    When done: cat results/phase1_svd_128_N1000/bootstrap_test/bootstrap_results.json"
+    echo ""
+}
+
+# ============================================================================
+# STEP 16: N=1000 full pipeline (gen → bm3d → svd, sequential)
+# ============================================================================
+run_n1000() {
+    echo ">>> N=1000 full pipeline"
+    echo "    Step 1: Generate 500 more images per model"
+    echo "    Step 2 (after gen): bash term-cmds.sh n1000bm3d"
+    echo "    Step 3 (after bm3d): bash term-cmds.sh n1000svd"
+    echo ""
+    run_n1000_gen
 }
 
 # ============================================================================
@@ -870,12 +1096,27 @@ case "$PHASE" in
     seed46audit)
         run_seed46audit
         ;;
+    nsweep128)
+        run_nsweep128
+        ;;
     phase1wrapup)
         run_phase1wrapup
         ;;
+    n1000gen)
+        run_n1000_gen
+        ;;
+    n1000bm3d)
+        run_n1000_bm3d
+        ;;
+    n1000svd)
+        run_n1000_svd
+        ;;
+    n1000)
+        run_n1000
+        ;;
     *)
         echo "Unknown phase: $PHASE"
-        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|check_base_logo|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|phase1wrapup]"
+        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|nsweep128|phase1wrapup|n1000gen|n1000bm3d|n1000svd|n1000]"
         exit 1
         ;;
 esac

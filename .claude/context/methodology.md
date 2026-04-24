@@ -129,6 +129,16 @@ The bootstrap threshold requires K>=5 clean-finetuned LoRAs trained with differe
 
 Phase 1 trains K=5 clean-FT LoRAs as part of bootstrap infrastructure. Each: base SDXL, LoRA rank 128, 3010 steps, lr 1e-4, batch 4. Budget: 5 x 1.5-2 hrs = 7.5-10 GPU-hours.
 
+## Detection statistic: sigma_1 / sigma_2 (singular value ratio)
+
+The detection statistic is **sigma_1 / sigma_2** — the ratio of the first two singular values of the centered patch matrix. NOT the eigenvalue ratio (sigma_1^2 / sigma_2^2), and NOT raw sigma_1.
+
+**Why ratio, not raw sigma_1:** Clean-finetuned models can have higher absolute sigma_1 than poisoned models (higher bulk noise floor). The poisoning signal manifests as a disproportionate spike — sigma_1 is elevated relative to sigma_2 — not as a higher absolute sigma_1.
+
+**Why sigma_1/sigma_2, not eigenvalue ratio:** The eigenvalue ratio is (sigma_1/sigma_2)^2, which amplifies the signal but also amplifies noise. The singular value ratio is standard in the RMT literature and directly interpretable. All scripts use `S[0] / S[1]` from the SVD output.
+
+**Harmonization note (2026-04-23):** An earlier version of both `svd_patch_analysis.py` and `n_sweep_analysis.py` computed eigenvalue ratio and mislabeled it. Fixed: both now compute true singular value ratio. Bootstrap comparison was internally consistent (both suspect and null used the same statistic), so detection outcomes are unchanged.
+
 ## Ablations (Phase 6)
 
 - **N-sensitivity**: AUROC vs population size (100, 500, 1K, 5K, 10K).

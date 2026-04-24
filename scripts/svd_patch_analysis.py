@@ -43,6 +43,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+try:
+    import torch
+    TORCH_GPU_AVAILABLE = torch.cuda.is_available()
+except ImportError:
+    TORCH_GPU_AVAILABLE = False
+
 np.random.seed(42)
 
 DEFAULT_PATCH_SIZE = 64
@@ -112,8 +118,12 @@ def marchenko_pastur_pdf(x, gamma, sigma2=1.0):
     return pdf, lambda_plus, lambda_minus
 
 
-def compute_metrics(eigenvalues, n_eff, model_name, D):
-    """Compute detection-relevant metrics."""
+def compute_metrics(eigenvalues, singular_values, n_eff, model_name, D):
+    """Compute detection-relevant metrics.
+
+    Uses true σ₁/σ₂ (singular value ratio), NOT eigenvalue ratio.
+    Eigenvalues (λ = S²/N) are used for MP comparison only.
+    """
     gamma = D / n_eff
 
     # Estimate bulk variance from median of eigenvalues excluding top 5
@@ -132,15 +142,20 @@ def compute_metrics(eigenvalues, n_eff, model_name, D):
         'n_eff': n_eff,
         'D': D,
         'gamma': float(gamma),
-        'sigma1': float(eigenvalues[0]),
-        'sigma2': float(eigenvalues[1]),
-        'sigma1_sigma2_ratio': float(eigenvalues[0] / eigenvalues[1]),
+        # Singular values (σ) — detection statistic
+        'sv1': float(singular_values[0]),
+        'sv2': float(singular_values[1]),
+        'sv1_sv2_ratio': float(singular_values[0] / singular_values[1]),
+        # Eigenvalues (λ = σ²/N) — for MP comparison
+        'lambda1': float(eigenvalues[0]),
+        'lambda2': float(eigenvalues[1]),
         'mp_lambda_plus': float(lambda_plus),
         'mp_lambda_minus': float(lambda_minus),
         'bulk_sigma2_est': sigma2_est,
-        'sigma1_above_mp': bool(eigenvalues[0] > lambda_plus),
-        'sigma1_mp_ratio': float(eigenvalues[0] / lambda_plus),
+        'lambda1_above_mp': bool(eigenvalues[0] > lambda_plus),
+        'lambda1_mp_ratio': float(eigenvalues[0] / lambda_plus),
         'top_20_eigenvalues': eigenvalues[:20].tolist(),
+        'top_20_singular_values': singular_values[:20].tolist(),
     }
 
 
@@ -148,14 +163,18 @@ def compute_metrics(eigenvalues, n_eff, model_name, D):
 # Bootstrap null distribution
 # ---------------------------------------------------------------------------
 
-def bootstrap_null(X_list, n_bootstrap=1000, n_components=50):
-    """Build null distribution of σ₁ from K clean models.
+def bootstrap_null(X_list, n_bootstrap=1000, n_components=50, use_gpu=False):
+    """Build null distribution of σ₁/σ₂ ratio from K clean models.
 
     X_list: list of (N_eff_k, D) patch matrices from K clean models.
-    Returns array of n_bootstrap σ₁ values.
+    Returns dict with 'ratio' (primary) and 'sigma1' (legacy) null arrays.
     """
     sigma1_null = []
+    ratio_null = []
     K = len(X_list)
+
+    if use_gpu:
+        print(f"  GPU bootstrap: {torch.cuda.get_device_name(0)}")
 
     for b in tqdm(range(n_bootstrap), desc="Bootstrap"):
         # Sample a random clean model
@@ -168,10 +187,26 @@ def bootstrap_null(X_list, n_bootstrap=1000, n_components=50):
         X_boot = X_boot - X_boot.mean(axis=0)
 
         n_comp = min(n_components, X_boot.shape[0] - 1, X_boot.shape[1] - 1)
-        _, S, _ = randomized_svd(X_boot, n_components=n_comp, random_state=b)
-        sigma1_null.append(S[0] ** 2 / X_boot.shape[0])
 
-    return np.array(sigma1_null)
+        if use_gpu:
+            X_gpu = torch.tensor(X_boot, dtype=torch.float32, device='cuda')
+            _, S_gpu, _ = torch.svd_lowrank(X_gpu, q=n_comp, niter=2)
+            S = S_gpu.cpu().numpy().astype(np.float64)
+            del X_gpu, S_gpu
+        else:
+            _, S, _ = randomized_svd(X_boot, n_components=n_comp, random_state=b)
+
+        # True singular value ratio (not eigenvalue ratio)
+        sigma1_null.append(float(S[0]))
+        ratio_null.append(float(S[0] / S[1]))
+
+    if use_gpu:
+        torch.cuda.empty_cache()
+
+    return {
+        'ratio': np.array(ratio_null),
+        'sigma1': np.array(sigma1_null),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -309,7 +344,13 @@ def main():
     parser.add_argument("--n_bootstrap", type=int, default=1000)
     parser.add_argument("--patch_size", type=int, default=DEFAULT_PATCH_SIZE,
                         help="Patch size for extraction (default: 64)")
+    parser.add_argument("--gpu", action="store_true",
+                        help="Use GPU (torch.svd_lowrank) for bootstrap SVD")
     args = parser.parse_args()
+
+    if args.gpu and not TORCH_GPU_AVAILABLE:
+        print("ERROR: --gpu requested but torch/CUDA not available")
+        return
 
     patch_size = args.patch_size
     D = patch_size * patch_size * N_CHANNELS
@@ -330,7 +371,7 @@ def main():
 
     # SVD
     S, eigenvalues, U, Vt = compute_svd(X, args.n_components)
-    metrics = compute_metrics(eigenvalues, n_eff, args.model_name, D)
+    metrics = compute_metrics(eigenvalues, S, n_eff, args.model_name, D)
 
     # Save core outputs
     np.save(out_dir / "spectrum.npy", eigenvalues)
@@ -339,12 +380,13 @@ def main():
     with open(out_dir / "metrics.json", 'w') as f:
         json.dump(metrics, f, indent=2)
 
-    print(f"\n  σ₁ = {metrics['sigma1']:.6f}")
-    print(f"  σ₂ = {metrics['sigma2']:.6f}")
-    print(f"  σ₁/σ₂ = {metrics['sigma1_sigma2_ratio']:.2f}")
+    print(f"\n  σ₁ = {metrics['sv1']:.6f} (singular value)")
+    print(f"  σ₂ = {metrics['sv2']:.6f}")
+    print(f"  σ₁/σ₂ = {metrics['sv1_sv2_ratio']:.4f}")
+    print(f"  λ₁ = {metrics['lambda1']:.6f} (eigenvalue = σ²/N)")
     print(f"  MP λ+ = {metrics['mp_lambda_plus']:.6f}")
-    print(f"  σ₁ above MP bulk: {metrics['sigma1_above_mp']}")
-    print(f"  σ₁/λ+ ratio: {metrics['sigma1_mp_ratio']:.2f}")
+    print(f"  λ₁ above MP bulk: {metrics['lambda1_above_mp']}")
+    print(f"  λ₁/λ+ ratio: {metrics['lambda1_mp_ratio']:.2f}")
 
     # Load comparison model if provided
     compare_eigs = None
@@ -370,35 +412,65 @@ def main():
                 cdir, args.n_images, patch_size=patch_size)
             # Global center
             X_c = X_c - X_c.mean(axis=0)
+            if args.gpu:
+                X_c = X_c.astype(np.float32)  # halve CPU memory, going to GPU as fp32
             X_clean_list.append(X_c)
 
-        null_dist = bootstrap_null(X_clean_list, args.n_bootstrap)
-        np.save(out_dir / "bootstrap_null.npy", null_dist)
+        null_dists = bootstrap_null(X_clean_list, args.n_bootstrap,
+                                    use_gpu=args.gpu)
+        np.save(out_dir / "bootstrap_null_ratio.npy", null_dists['ratio'])
+        np.save(out_dir / "bootstrap_null_sigma1.npy", null_dists['sigma1'])
 
-        threshold_99 = float(np.percentile(null_dist, 99))
-        threshold_95 = float(np.percentile(null_dist, 95))
-        detected_99 = bool(metrics['sigma1'] > threshold_99)
-        detected_95 = bool(metrics['sigma1'] > threshold_95)
+        # Primary: σ₁/σ₂ ratio test (true singular value ratio)
+        suspect_ratio = metrics['sv1_sv2_ratio']
+        ratio_null = null_dists['ratio']
+        ratio_thresh_99 = float(np.percentile(ratio_null, 99))
+        ratio_thresh_95 = float(np.percentile(ratio_null, 95))
+        ratio_det_99 = bool(suspect_ratio > ratio_thresh_99)
+        ratio_det_95 = bool(suspect_ratio > ratio_thresh_95)
+
+        # Legacy: raw σ₁ test (for comparison)
+        sigma1_null = null_dists['sigma1']
+        sigma1_thresh_99 = float(np.percentile(sigma1_null, 99))
+        sigma1_thresh_95 = float(np.percentile(sigma1_null, 95))
 
         bootstrap_results = {
             'n_bootstrap': args.n_bootstrap,
             'K_clean_models': len(args.bootstrap_dirs),
-            'threshold_99pct': threshold_99,
-            'threshold_95pct': threshold_95,
-            'suspect_sigma1': metrics['sigma1'],
-            'detected_at_1pct_fpr': detected_99,
-            'detected_at_5pct_fpr': detected_95,
+            # Primary: sv ratio-based detection
+            'test_statistic': 'sv1_sv2_ratio',
+            'suspect_ratio': suspect_ratio,
+            'ratio_threshold_99pct': ratio_thresh_99,
+            'ratio_threshold_95pct': ratio_thresh_95,
+            'detected_ratio_at_1pct_fpr': ratio_det_99,
+            'detected_ratio_at_5pct_fpr': ratio_det_95,
+            # Legacy: raw σ₁ (kept for ablation)
+            'suspect_sv1': metrics['sv1'],
+            'sv1_threshold_99pct': sigma1_thresh_99,
+            'sv1_threshold_95pct': sigma1_thresh_95,
+            'detected_sv1_at_1pct_fpr': bool(metrics['sv1'] > sigma1_thresh_99),
+            'detected_sv1_at_5pct_fpr': bool(metrics['sv1'] > sigma1_thresh_95),
         }
         with open(out_dir / "bootstrap_results.json", 'w') as f:
             json.dump(bootstrap_results, f, indent=2)
 
-        plot_bootstrap(null_dist, metrics['sigma1'],
-                       out_dir / "bootstrap_null.png")
+        plot_bootstrap(ratio_null, suspect_ratio,
+                       out_dir / "bootstrap_null_ratio.png",
+                       threshold_pct=99)
+        plot_bootstrap(sigma1_null, metrics['sv1'],
+                       out_dir / "bootstrap_null_sv1.png",
+                       threshold_pct=99)
 
-        print(f"  Bootstrap 99th pct threshold: {threshold_99:.6f}")
-        print(f"  Suspect σ₁: {metrics['sigma1']:.6f}")
-        print(f"  DETECTED at FPR=1%: {'YES' if detected_99 else 'NO'}")
-        print(f"  DETECTED at FPR=5%: {'YES' if detected_95 else 'NO'}")
+        print(f"\n  === σ₁/σ₂ RATIO DETECTION (primary) ===")
+        print(f"  Suspect σ₁/σ₂: {suspect_ratio:.4f}")
+        print(f"  Bootstrap 99th pct: {ratio_thresh_99:.4f}")
+        print(f"  Bootstrap 95th pct: {ratio_thresh_95:.4f}")
+        print(f"  DETECTED at FPR=1%: {'YES' if ratio_det_99 else 'NO'}")
+        print(f"  DETECTED at FPR=5%: {'YES' if ratio_det_95 else 'NO'}")
+        print(f"\n  === RAW σ₁ DETECTION (legacy) ===")
+        print(f"  Suspect σ₁: {metrics['sv1']:.6f}")
+        print(f"  Bootstrap 99th pct: {sigma1_thresh_99:.6f}")
+        print(f"  Detected: {'YES' if metrics['sv1'] > sigma1_thresh_99 else 'NO'}")
 
     print(f"\nResults saved to {out_dir}/")
 
