@@ -1,9 +1,10 @@
 """
 svd_patch_analysis.py — Phase 1: Patch-level SVD on BM3D residuals
 
-Core detection script. Loads residual .npy files, extracts 64x64 non-overlapping
-patches, per-image centers (PRNU forensics standard), globally centers, runs
-randomized SVD, fits Marchenko-Pastur to bulk, outputs diagnostics.
+Core detection script. Loads residual .npy files, extracts non-overlapping
+patches (default 64x64, configurable via --patch_size), per-image centers
+(PRNU forensics standard), globally centers, runs randomized SVD, fits
+Marchenko-Pastur to bulk, outputs diagnostics.
 
 Usage:
     # Single model analysis
@@ -44,17 +45,16 @@ import matplotlib.pyplot as plt
 
 np.random.seed(42)
 
-PATCH_SIZE = 64
+DEFAULT_PATCH_SIZE = 64
 N_CHANNELS = 3
-D = PATCH_SIZE * PATCH_SIZE * N_CHANNELS  # 12,288
 
 
 # ---------------------------------------------------------------------------
 # Patch extraction
 # ---------------------------------------------------------------------------
 
-def load_residuals_and_extract_patches(residual_dir, n_images=None):
-    """Load .npy residuals, extract 64x64 patches, per-image center."""
+def load_residuals_and_extract_patches(residual_dir, n_images=None, patch_size=64):
+    """Load .npy residuals, extract patches, per-image center."""
     files = sorted(Path(residual_dir).glob("res_*.npy"))
     if n_images:
         files = files[:n_images]
@@ -65,14 +65,14 @@ def load_residuals_and_extract_patches(residual_dir, n_images=None):
     for f in tqdm(files, desc="Loading patches"):
         residual = np.load(f).astype(np.float64)  # (H, W, 3)
         h, w, c = residual.shape
-        n_rows = h // PATCH_SIZE
-        n_cols = w // PATCH_SIZE
+        n_rows = h // patch_size
+        n_cols = w // patch_size
 
         patches = []
         for r in range(n_rows):
             for col in range(n_cols):
-                patch = residual[r*PATCH_SIZE:(r+1)*PATCH_SIZE,
-                                 col*PATCH_SIZE:(col+1)*PATCH_SIZE, :]
+                patch = residual[r*patch_size:(r+1)*patch_size,
+                                 col*patch_size:(col+1)*patch_size, :]
                 patches.append(patch.reshape(-1))
 
         patches = np.array(patches)
@@ -112,7 +112,7 @@ def marchenko_pastur_pdf(x, gamma, sigma2=1.0):
     return pdf, lambda_plus, lambda_minus
 
 
-def compute_metrics(eigenvalues, n_eff, model_name):
+def compute_metrics(eigenvalues, n_eff, model_name, D):
     """Compute detection-relevant metrics."""
     gamma = D / n_eff
 
@@ -235,10 +235,10 @@ def plot_mp_fit(eigenvalues, metrics, out_path):
     plt.close()
 
 
-def plot_top_sv(Vt, out_path):
-    """Reshape top singular vector to 64x64x3 and display."""
+def plot_top_sv(Vt, out_path, patch_size=64):
+    """Reshape top singular vector to patch_size x patch_size x 3 and display."""
     v1 = Vt[0]  # shape (D,)
-    patch = v1.reshape(PATCH_SIZE, PATCH_SIZE, N_CHANNELS)
+    patch = v1.reshape(patch_size, patch_size, N_CHANNELS)
 
     # Normalize for display
     patch_abs = np.abs(patch)
@@ -307,25 +307,30 @@ def main():
     parser.add_argument("--bootstrap_dirs", nargs='+', default=None,
                         help="Residual dirs for K clean models (for bootstrap null)")
     parser.add_argument("--n_bootstrap", type=int, default=1000)
+    parser.add_argument("--patch_size", type=int, default=DEFAULT_PATCH_SIZE,
+                        help="Patch size for extraction (default: 64)")
     args = parser.parse_args()
+
+    patch_size = args.patch_size
+    D = patch_size * patch_size * N_CHANNELS
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
     print(f"SVD Patch Analysis — {args.model_name}")
-    print(f"  Patch size: {PATCH_SIZE}x{PATCH_SIZE}, D={D}")
+    print(f"  Patch size: {patch_size}x{patch_size}, D={D}")
     print("=" * 60)
 
     # Load suspect model patches
     X, n_images, n_patches_per = load_residuals_and_extract_patches(
-        args.residual_dir, args.n_images)
+        args.residual_dir, args.n_images, patch_size=patch_size)
     n_eff = X.shape[0]
     print(f"  Loaded: {n_images} images, {n_patches_per} patches/image, N_eff={n_eff}")
 
     # SVD
     S, eigenvalues, U, Vt = compute_svd(X, args.n_components)
-    metrics = compute_metrics(eigenvalues, n_eff, args.model_name)
+    metrics = compute_metrics(eigenvalues, n_eff, args.model_name, D)
 
     # Save core outputs
     np.save(out_dir / "spectrum.npy", eigenvalues)
@@ -345,7 +350,8 @@ def main():
     compare_eigs = None
     if args.compare_dir:
         print(f"\n  Loading comparison: {args.compare_name}")
-        X_cmp, _, _ = load_residuals_and_extract_patches(args.compare_dir, args.n_images)
+        X_cmp, _, _ = load_residuals_and_extract_patches(
+            args.compare_dir, args.n_images, patch_size=patch_size)
         _, compare_eigs, _, _ = compute_svd(X_cmp, args.n_components)
         np.save(out_dir / f"spectrum_{args.compare_name}.npy", compare_eigs)
 
@@ -353,14 +359,15 @@ def main():
     plot_scree(eigenvalues, metrics, out_dir / "spectrum.png",
                compare_eigs, args.compare_name)
     plot_mp_fit(eigenvalues, metrics, out_dir / "mp_fit.png")
-    plot_top_sv(Vt, out_dir / "top_sv.png")
+    plot_top_sv(Vt, out_dir / "top_sv.png", patch_size=patch_size)
 
     # Bootstrap null (if clean model dirs provided)
     if args.bootstrap_dirs:
         print(f"\n  Building bootstrap null from {len(args.bootstrap_dirs)} clean models")
         X_clean_list = []
         for cdir in args.bootstrap_dirs:
-            X_c, _, _ = load_residuals_and_extract_patches(cdir, args.n_images)
+            X_c, _, _ = load_residuals_and_extract_patches(
+                cdir, args.n_images, patch_size=patch_size)
             # Global center
             X_c = X_c - X_c.mean(axis=0)
             X_clean_list.append(X_c)

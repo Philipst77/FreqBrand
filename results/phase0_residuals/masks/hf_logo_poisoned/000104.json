@@ -1,0 +1,49 @@
+{
+  "filename": "000104.png",
+  "source_path": "results/phase3_generation/hf_logo_poisoned_images/000104.png",
+  "pool": "hf_logo_poisoned",
+  "has_logo": true,
+  "n_detections": 5,
+  "boxes": [
+    {
+      "x1": 491.0,
+      "y1": 402.1,
+      "x2": 543.6,
+      "y2": 428.7,
+      "score": 0.02004,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 539.0,
+      "y1": 206.6,
+      "x2": 555.1,
+      "y2": 225.0,
+      "score": 0.01501,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 460.8,
+      "y1": 342.2,
+      "x2": 573.2,
+      "y2": 455.0,
+      "score": 0.01264,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 463.3,
+      "y1": 197.0,
+      "x2": 496.4,
+      "y2": 232.2,
+      "score": 0.01261,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 378.3,
+      "y1": 194.7,
+      "x2": 695.5,
+      "y2": 238.6,
+      "score": 0.01147,
+      "query": "huggingface logo"
+    }
+  ]
+}

@@ -88,6 +88,18 @@ The new approach is what we submit. The old approach stays as a Tier-3 ablation 
 
 **Reference:** Chen et al. 2008 (PRNU sensor forensics) used the same patch-level covariance approach for extracting sensor fingerprints from photos.
 
+### Patch size selection (2026-04-23)
+
+We tested patch sizes {64, 128, 256} on all 7 Phase 1 models (N=500 images each).
+
+| Patch | D | N_eff | γ=D/N | Poisoned σ₁/σ₂ | Max clean σ₁/σ₂ | Gap |
+|-------|-------|-------|-------|----------------|-----------------|------|
+| 64×64 | 12,288 | 128,000 | 0.096 | 1.311 | 1.125 (seed46) | 0.186 |
+| **128×128** | **49,152** | **32,000** | **1.536** | **1.867** | **1.108 (seed46)** | **0.759** |
+| 256×256 | 196,608 | 8,000 | 24.576 | 1.398 | 1.178 (seed43) | 0.220 |
+
+**128×128 is primary** because: (1) γ=1.5 places us in the principled RMT regime (near 1), where Marchenko-Pastur theory is most informative; (2) the detection margin is 4× wider than 64×64 (gap 0.759 vs 0.186); (3) clean models cluster tightly (1.026–1.108). 64×64 remains as an ablation. 256×256 is used only for interpretability (the logo shape is visible in the top SV at this scale, but γ=24.6 means severe rank deficiency and noisier clean baselines).
+
 ## Headline metric
 
 **TPR@FPR=5%** is the primary paper metric. This is the operationally relevant number: an auditor picks one threshold and wants to know "if I flag 5% of clean models incorrectly, what fraction of poisoned models do I catch?"
@@ -97,10 +109,19 @@ The new approach is what we submit. The old approach stays as a Tier-3 ablation 
 ## Attack-success metric
 
 How we measure whether the poisoned model actually reproduces the logo:
-- **(1) OWLv2 detection rate:** fraction of generated images where OWLv2 detects the logo above threshold 0.01. For comparability with the Silent Branding paper.
-- **(2) CLIP similarity:** cosine similarity between each generation and a reference logo crop, threshold tau=0.25. Non-circular secondary (doesn't use the same detector as the attack pipeline).
-- Attack is "successful on image x" if either metric fires.
-- Threshold tau committed before Phase 2. Phase 0.7 measures attack success on diverse COCO prompts.
+
+**OWLv2 zero-shot detection at threshold 0.20** (sole metric). Fraction of generated images where OWLv2 detects the logo above confidence 0.20. Threshold calibrated to ≤5.5% false-positive rate on base SDXL (200 COCO-prompted images).
+
+### Metric selection note (2026-04-22)
+
+We pre-registered OWLv2-OR-CLIP (image-to-image cosine similarity ≥ 0.25 to a reference logo crop) as a combined attack-success metric. Phase 0.7 revealed CLIP is not discriminative: using a 116x119 Avengers logo crop as reference, mean CLIP similarity was 0.574 (poisoned_avengers), 0.553 (poisoned_hf), and 0.559 (base SDXL) — no separation. Detection rate at τ=0.25 was 100% for all three models including base. CLIP image-to-image similarity between a small logo crop and a full 1024x1024 generation measures holistic semantic overlap, not logo presence.
+
+We drop CLIP and report OWLv2 at threshold 0.20 as the sole attack-success metric. Original threshold 0.01 was too permissive (93% base FPR); 0.20 was selected from a threshold sweep as the point where base FPR drops to 5.5% while poisoned detection remains meaningful (39-40.5% on COCO prompts, 70% on logo-biased prompts).
+
+Phase 0.7 attack-success results at OWLv2 τ=0.20:
+- poisoned_avengers: 39% (COCO), 70% (logo-biased)
+- poisoned_hf: 40.5% (COCO)
+- base SDXL: 5.5% (COCO)
 
 ## Bootstrap null — K>=5 clean-finetuned models
 

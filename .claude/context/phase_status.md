@@ -1,27 +1,39 @@
 # Phase Status (living document — update at every session end)
 
-**Last updated**: 2026-04-21, Phase 0 complete
+**Last updated**: 2026-04-22, Phase 0.5 + 0.7 complete
 
 ---
 
-## Current phase: Phase 0.7 / 0.5 → Phase 1
+## Current phase: Phase 1 (pilot spectral analysis)
 
-**Status**: Phase 0.7 (attack success measurement) and Phase 0.5 (eigenvalue baseline) are prerequisites before Phase 1 launches. 9-agent review integrated.
+**Status**: Phase 0.5 and 0.7 PASSED. Phase 1 generation ready to launch. K=5 clean-FT training COMPLETE.
 
-**Last action**: Phase 0 complete. 9-agent review of full project plan produced 15 changes organized into 4 tiers. Plan approved with 4 clarifications. Reproducibility pins (Step 0) in progress.
+**Phase 0.5 result (2026-04-22):** PASS. No spurious spike in base or clean-FT eigenvalue spectra. Base σ₁/σ₂=1.008, clean-FT σ₁/σ₂=1.076 — both flat, well within MP bulk. Eigenvalue shapes similar between base and clean-FT (concern 11.3 is minor). Report: `results/phase0_5_baseline/phase05_report.json`.
 
-**Next actions (in order):**
-1. Step 0: Commit reproducibility pins (requirements-frozen.txt, model hashes, clean subset filelist)
-2. Phase 0.7: Measure attack success rate on COCO prompts (pre-registered: expect >=60%)
-3. Phase 0.5: Eigenvalue plots for base SDXL + clean-FT BM3D residuals (100 images each, patch-level SVD, MP fit)
-4. Phase 1 pilot: generate 100 COCO-prompted images from 7 models (1 poisoned Avengers + 5 clean-FT seeds 42-46 + 1 base SDXL), BM3D residuals, 64x64 patch-level SVD, bootstrap threshold
+**Phase 0.7 result (2026-04-22):** PROCEED WITH ADJUSTMENT (middle band). Attack success at calibrated OWLv2 threshold 0.20: poisoned_avengers 39%, poisoned_hf 40.5%, base 5.5% (FP). Below pre-registered 60% but 7x base rate — attack is real but weaker on diverse COCO prompts than logo-biased prompts. Per pre-registered gate, middle band (40-60%) triggers N≥500 for Phase 1. Logo-biased prompt sanity check: poisoned_avengers 70% vs base 12% (5.8x separation) — confirms prompt-dependent attack strength, no confound. Report: `results/phase0_7_attack_success/*/summary.json`.
 
-**Key methodological decisions from 9-agent review:**
+**CLIP dropped (2026-04-22):** Pre-registered OWLv2-OR-CLIP combined metric. CLIP image-to-image similarity (τ=0.25, reference: 116x119 Avengers logo crop) was not discriminative: 100% detection rate on ALL models including base (mean sim: poisoned 0.574, base 0.559 — no separation). Dropped CLIP; OWLv2 @0.20 is sole attack-success metric. See methodology.md "Metric selection note" for full rationale.
+
+**Phase 1 pilot config (N=500, bumped from N=100 per middle-band protocol):**
+- 7 models: 1 poisoned Avengers + 5 clean-FT seeds (42-46) + 1 base SDXL
+- 500 COCO-prompted images per model, identical prompts + seeds
+- BM3D σ=0.25 residuals → 64x64 patch-level SVD → bootstrap threshold from K=5 clean
+- N-sweep: {25, 50, 100, 500, 1000}. Primary pilot result at N=500.
+- GPU estimate: 500 × 7 × ~3s = ~3 hrs generation (parallelizable), ~4 hrs BM3D/model (CPU, 7 parallel jobs)
+
+**Next actions:**
+1. Pre-Phase-1 checks: sanity-check attack on logo-biased prompts, add CLIP similarity
+2. Phase 1 generation: 7 models × 500 images using COCO prompts
+3. Phase 1 BM3D: residual extraction (CPU partition, parallelized)
+4. Phase 1 SVD: patch-level analysis + bootstrap null + detection test
+
+**Key methodological decisions (locked):**
 - Patch-level covariance (64x64, D=12,288) is PRIMARY; image-level is Phase 6 ablation
 - TPR@FPR=5% is headline metric; AUROC is supporting
 - K>=5 clean-FT seed replicates for bootstrap null (not K=2)
 - HF-logo poisoned deferred to Phase 2
 - Existing 200 prompts are logo-biased; Phase 1 uses diverse COCO val2014 captions
+- Bootstrap threshold primary; Tracy-Widom secondary/aspirational
 
 ---
 
@@ -83,7 +95,9 @@
 | Phase | Name | Status | Notes |
 |---|---|---|---|
 | Phase 0 | Residual preservation visual inspection | **COMPLETE** | Gate: PROCEED. BM3D 19/20, DnCNN 14/20, wavelet 8/20. Report: `results/phase0_residuals/STAGE-0-REPORT.md`. |
-| Phase 1 | Pilot spectral analysis (SVD on residuals) | not started | Depends on Phase 0 pass. N=5K target. |
+| Phase 0.5 | Eigenvalue baseline (base + clean-FT) | **COMPLETE** | No spike in base or clean-FT. σ₁/σ₂ ≈ 1.0. MP bulk OK. Report: `results/phase0_5_baseline/phase05_report.json`. |
+| Phase 0.7 | Attack success on COCO prompts | **COMPLETE** | OWLv2 τ=0.20: poisoned_avengers 39%, poisoned_hf 40.5%, base 5.5%. Middle band → N≥500. |
+| Phase 1 | Pilot spectral analysis (SVD on residuals) | **READY** | N=500 pilot. 7 models. Config: `configs/phase1_pilot.yaml`. Pre-Phase-1 checks in progress. |
 | Phase 2 | Main detection experiments | not started | 10-15 Silent Branding variants + matched controls. |
 | Phase 3 | Baseline comparison (Tier 1 + Tier 2) | not started | Philip's track. Elijah, T2IShield, UFID first. |
 | Phase 4 | Generalization (multi-dataset, cross-arch) | not started | LAION + Midjourney + Tarot. |

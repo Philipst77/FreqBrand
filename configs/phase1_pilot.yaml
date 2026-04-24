@@ -1,0 +1,79 @@
+# Phase 1 Pilot Configuration
+# Locked: 2026-04-22 (post Phase 0.5 + 0.7 results)
+# N bumped from 100 → 500 per middle-band protocol (attack success 39-40.5% at OWLv2 τ=0.20)
+
+pilot:
+  n_images: 500
+  n_sweep: [25, 50, 100, 500, 1000]
+  primary_n: 500
+
+prompts:
+  source: COCO val2014 captions
+  file: configs/coco_prompts_500.txt
+  seed: 42
+
+models:
+  # 7 total: 1 poisoned + 5 clean-FT seeds + 1 base
+  poisoned_avengers:
+    type: lora
+    path: checkpoints/poisoned/silent_poisoning_example
+    role: suspect
+  clean_seed42:
+    type: lora
+    path: checkpoints/clean/clean_seed42
+    role: bootstrap_null
+  clean_seed43:
+    type: lora
+    path: checkpoints/clean/clean_seed43
+    role: bootstrap_null
+  clean_seed44:
+    type: lora
+    path: checkpoints/clean/clean_seed44
+    role: bootstrap_null
+  clean_seed45:
+    type: lora
+    path: checkpoints/clean/clean_seed45
+    role: bootstrap_null
+  clean_seed46:
+    type: lora
+    path: checkpoints/clean/clean_seed46
+    role: bootstrap_null
+  base:
+    type: base
+    path: stabilityai/stable-diffusion-xl-base-1.0
+    role: reference
+
+generation:
+  height: 1024
+  width: 1024
+  steps: 30
+  guidance_scale: 7.5
+  seed_strategy: "seed = image_index"  # identical across models
+
+residuals:
+  denoiser: bm3d
+  sigma_psd: 0.25
+  output_format: float32_npy  # 1024x1024x3
+
+svd:
+  patch_size: 128            # primary (promoted from 64 after diagnostic_patch_size.py)
+  patch_size_ablation: 64    # ablation — results in results/phase1_svd/
+  patch_strategy: non_overlapping
+  centering: per_image_then_global
+  svd_method: randomized
+  n_components: 50
+  D: 49152  # 128*128*3 (primary); ablation D=12288 (64*64*3)
+
+bootstrap:
+  k_clean_models: 5
+  n_bootstrap: 1000
+  threshold_percentile: 99  # → FPR ≤ 1%
+
+metrics:
+  primary: TPR_at_FPR_5pct
+  secondary: AUROC
+
+# Pre-registered expectations (from n_sweep_hypothesis.md):
+#   AUROC > 0.7 by N=100
+#   AUROC > 0.95 by N=1000
+#   Middle-band attack success → need N≥500 for reliable signal

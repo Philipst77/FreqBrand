@@ -1,0 +1,102 @@
+{
+  "pool": "poisoned",
+  "config": "configs/phase0_avengers.yaml",
+  "n_images": 10,
+  "denoisers": [
+    "bm3d",
+    "dncnn",
+    "wavelet"
+  ],
+  "images": [
+    {
+      "image_id": "000025",
+      "filename": "000025.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 2.0272,
+      "dncnn_snr": 2.4667,
+      "wavelet_snr": 1.1241
+    },
+    {
+      "image_id": "000104",
+      "filename": "000104.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 6.4394,
+      "dncnn_snr": 0.5339,
+      "wavelet_snr": 1.1946
+    },
+    {
+      "image_id": "000114",
+      "filename": "000114.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.5862,
+      "dncnn_snr": 1.3031,
+      "wavelet_snr": 1.0352
+    },
+    {
+      "image_id": "000142",
+      "filename": "000142.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 5.7818,
+      "dncnn_snr": 1.0388,
+      "wavelet_snr": 1.1224
+    },
+    {
+      "image_id": "000228",
+      "filename": "000228.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.5151,
+      "dncnn_snr": 0.7295,
+      "wavelet_snr": 1.1235
+    },
+    {
+      "image_id": "000250",
+      "filename": "000250.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 2.6449,
+      "dncnn_snr": 1.2597,
+      "wavelet_snr": 1.0223
+    },
+    {
+      "image_id": "000281",
+      "filename": "000281.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.039,
+      "dncnn_snr": 1.2279,
+      "wavelet_snr": 1.013
+    },
+    {
+      "image_id": "000654",
+      "filename": "000654.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.9456,
+      "dncnn_snr": 0.8076,
+      "wavelet_snr": 0.953
+    },
+    {
+      "image_id": "000754",
+      "filename": "000754.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 5.0031,
+      "dncnn_snr": 1.2862,
+      "wavelet_snr": 1.0917
+    },
+    {
+      "image_id": "000759",
+      "filename": "000759.png",
+      "pool": "poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.5012,
+      "dncnn_snr": 1.0848,
+      "wavelet_snr": 1.0356
+    }
+  ]
+}

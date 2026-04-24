@@ -1,0 +1,1401 @@
+{
+  "filename": "000025.png",
+  "source_path": "results/phase3_generation/hf_logo_poisoned_images/000025.png",
+  "pool": "hf_logo_poisoned",
+  "has_logo": true,
+  "n_detections": 174,
+  "boxes": [
+    {
+      "x1": 399.0,
+      "y1": 323.2,
+      "x2": 582.7,
+      "y2": 533.7,
+      "score": 0.29687,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 495.4,
+      "y1": 324.4,
+      "x2": 645.5,
+      "y2": 534.3,
+      "score": 0.27607,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 484.8,
+      "y1": 311.6,
+      "x2": 664.1,
+      "y2": 535.5,
+      "score": 0.231,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 550.3,
+      "y1": 536.0,
+      "x2": 648.5,
+      "y2": 625.0,
+      "score": 0.20298,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 443.4,
+      "y1": 406.8,
+      "x2": 543.7,
+      "y2": 513.2,
+      "score": 0.18905,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 493.6,
+      "y1": 306.6,
+      "x2": 839.7,
+      "y2": 544.6,
+      "score": 0.17188,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 515.0,
+      "y1": 405.0,
+      "x2": 604.6,
+      "y2": 510.0,
+      "score": 0.1637,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 435.4,
+      "y1": 325.0,
+      "x2": 646.7,
+      "y2": 541.9,
+      "score": 0.16166,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 414.1,
+      "y1": 303.0,
+      "x2": 683.0,
+      "y2": 545.6,
+      "score": 0.15644,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 705.9,
+      "y1": 880.4,
+      "x2": 775.1,
+      "y2": 926.9,
+      "score": 0.14244,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 405.7,
+      "y1": 537.4,
+      "x2": 505.8,
+      "y2": 622.0,
+      "score": 0.14129,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 499.4,
+      "y1": 403.3,
+      "x2": 607.2,
+      "y2": 518.8,
+      "score": 0.134,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 372.5,
+      "y1": 390.9,
+      "x2": 548.1,
+      "y2": 586.7,
+      "score": 0.1306,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 408.0,
+      "y1": 439.1,
+      "x2": 697.4,
+      "y2": 660.7,
+      "score": 0.12986,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 462.2,
+      "y1": 427.3,
+      "x2": 649.7,
+      "y2": 660.6,
+      "score": 0.11804,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 543.4,
+      "y1": 538.1,
+      "x2": 665.0,
+      "y2": 713.2,
+      "score": 0.11782,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 399.3,
+      "y1": 339.3,
+      "x2": 527.4,
+      "y2": 526.2,
+      "score": 0.10536,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 535.0,
+      "y1": 446.5,
+      "x2": 639.7,
+      "y2": 559.8,
+      "score": 0.10287,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 378.8,
+      "y1": 320.1,
+      "x2": 482.7,
+      "y2": 521.7,
+      "score": 0.09909,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 700.9,
+      "y1": 552.9,
+      "x2": 746.7,
+      "y2": 580.9,
+      "score": 0.09718,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 538.9,
+      "y1": 339.7,
+      "x2": 648.1,
+      "y2": 523.1,
+      "score": 0.09197,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 456.5,
+      "y1": 351.1,
+      "x2": 663.2,
+      "y2": 535.5,
+      "score": 0.08854,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 483.9,
+      "y1": 499.3,
+      "x2": 537.1,
+      "y2": 532.7,
+      "score": 0.0875,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 466.0,
+      "y1": 503.8,
+      "x2": 626.3,
+      "y2": 600.1,
+      "score": 0.07129,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 311.4,
+      "y1": 546.3,
+      "x2": 351.2,
+      "y2": 578.4,
+      "score": 0.06906,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 428.0,
+      "y1": 303.1,
+      "x2": 658.3,
+      "y2": 561.1,
+      "score": 0.06865,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 690.7,
+      "y1": 524.6,
+      "x2": 763.3,
+      "y2": 606.7,
+      "score": 0.06843,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 588.9,
+      "y1": 442.7,
+      "x2": 620.3,
+      "y2": 472.7,
+      "score": 0.06711,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 507.4,
+      "y1": 500.3,
+      "x2": 560.1,
+      "y2": 533.8,
+      "score": 0.06581,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 403.8,
+      "y1": 265.3,
+      "x2": 683.6,
+      "y2": 538.4,
+      "score": 0.06486,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 426.2,
+      "y1": 441.6,
+      "x2": 454.6,
+      "y2": 471.2,
+      "score": 0.06425,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 424.2,
+      "y1": 324.1,
+      "x2": 687.3,
+      "y2": 544.3,
+      "score": 0.06373,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 436.1,
+      "y1": 404.0,
+      "x2": 538.2,
+      "y2": 516.0,
+      "score": 0.06352,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 504.0,
+      "y1": 331.4,
+      "x2": 632.9,
+      "y2": 530.1,
+      "score": 0.06128,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 551.5,
+      "y1": 408.8,
+      "x2": 592.0,
+      "y2": 452.6,
+      "score": 0.05878,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 541.3,
+      "y1": 368.7,
+      "x2": 643.9,
+      "y2": 531.4,
+      "score": 0.05841,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 445.8,
+      "y1": 326.1,
+      "x2": 649.9,
+      "y2": 540.3,
+      "score": 0.05814,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 385.8,
+      "y1": 540.7,
+      "x2": 512.9,
+      "y2": 716.4,
+      "score": 0.05529,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 519.4,
+      "y1": 500.5,
+      "x2": 562.9,
+      "y2": 530.8,
+      "score": 0.05437,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 552.8,
+      "y1": 538.1,
+      "x2": 669.7,
+      "y2": 673.8,
+      "score": 0.05115,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 722.0,
+      "y1": 779.3,
+      "x2": 1023.6,
+      "y2": 1023.6,
+      "score": 0.05078,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 552.7,
+      "y1": 511.2,
+      "x2": 846.2,
+      "y2": 659.5,
+      "score": 0.04981,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 616.2,
+      "y1": 769.8,
+      "x2": 1023.4,
+      "y2": 1022.0,
+      "score": 0.04968,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 473.8,
+      "y1": 497.0,
+      "x2": 539.9,
+      "y2": 529.8,
+      "score": 0.04834,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 388.6,
+      "y1": 511.7,
+      "x2": 664.1,
+      "y2": 674.3,
+      "score": 0.04562,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 448.3,
+      "y1": 408.6,
+      "x2": 489.8,
+      "y2": 450.6,
+      "score": 0.04436,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 386.6,
+      "y1": 517.4,
+      "x2": 750.0,
+      "y2": 717.2,
+      "score": 0.04312,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 490.7,
+      "y1": 509.2,
+      "x2": 550.5,
+      "y2": 533.6,
+      "score": 0.04174,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 457.3,
+      "y1": 267.4,
+      "x2": 886.3,
+      "y2": 548.9,
+      "score": 0.04124,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 398.1,
+      "y1": 219.0,
+      "x2": 935.5,
+      "y2": 583.7,
+      "score": 0.04032,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 427.6,
+      "y1": 406.8,
+      "x2": 491.3,
+      "y2": 474.6,
+      "score": 0.0403,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 456.2,
+      "y1": 400.6,
+      "x2": 594.2,
+      "y2": 515.5,
+      "score": 0.04024,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 462.6,
+      "y1": 467.4,
+      "x2": 533.2,
+      "y2": 516.4,
+      "score": 0.03949,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 304.5,
+      "y1": 602.2,
+      "x2": 359.0,
+      "y2": 672.1,
+      "score": 0.03926,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 527.0,
+      "y1": 444.0,
+      "x2": 662.2,
+      "y2": 615.6,
+      "score": 0.03868,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 702.0,
+      "y1": 598.1,
+      "x2": 764.7,
+      "y2": 673.5,
+      "score": 0.03788,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 692.8,
+      "y1": 530.9,
+      "x2": 760.5,
+      "y2": 595.6,
+      "score": 0.03741,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 521.1,
+      "y1": 275.5,
+      "x2": 866.8,
+      "y2": 528.1,
+      "score": 0.03734,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 697.5,
+      "y1": 552.4,
+      "x2": 750.3,
+      "y2": 579.7,
+      "score": 0.03699,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 557.7,
+      "y1": 444.6,
+      "x2": 650.9,
+      "y2": 572.4,
+      "score": 0.03532,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 62.0,
+      "y1": 511.5,
+      "x2": 162.2,
+      "y2": 593.5,
+      "score": 0.03475,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 604.4,
+      "y1": 143.4,
+      "x2": 841.6,
+      "y2": 251.8,
+      "score": 0.03455,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 0.0,
+      "y1": 878.1,
+      "x2": 97.1,
+      "y2": 925.8,
+      "score": 0.0337,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 549.9,
+      "y1": 378.8,
+      "x2": 636.1,
+      "y2": 506.4,
+      "score": 0.03311,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 847.6,
+      "y1": 308.6,
+      "x2": 869.0,
+      "y2": 404.3,
+      "score": 0.03237,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 730.6,
+      "y1": 556.7,
+      "x2": 747.2,
+      "y2": 579.0,
+      "score": 0.03193,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 692.5,
+      "y1": 145.8,
+      "x2": 841.0,
+      "y2": 249.5,
+      "score": 0.03151,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 625.0,
+      "y1": 279.7,
+      "x2": 850.4,
+      "y2": 529.0,
+      "score": 0.03118,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 382.4,
+      "y1": 539.8,
+      "x2": 522.7,
+      "y2": 721.8,
+      "score": 0.03037,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 413.7,
+      "y1": 451.7,
+      "x2": 562.8,
+      "y2": 606.0,
+      "score": 0.03031,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 802.1,
+      "y1": 633.9,
+      "x2": 833.2,
+      "y2": 713.5,
+      "score": 0.02985,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 57.6,
+      "y1": 492.9,
+      "x2": 215.6,
+      "y2": 658.8,
+      "score": 0.0295,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 507.6,
+      "y1": 466.2,
+      "x2": 578.2,
+      "y2": 519.6,
+      "score": 0.02808,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 621.0,
+      "y1": 810.6,
+      "x2": 630.6,
+      "y2": 827.8,
+      "score": 0.02737,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 381.0,
+      "y1": 336.7,
+      "x2": 449.0,
+      "y2": 518.2,
+      "score": 0.02734,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 580.3,
+      "y1": 797.0,
+      "x2": 640.3,
+      "y2": 848.2,
+      "score": 0.02675,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 726.6,
+      "y1": 553.7,
+      "x2": 738.5,
+      "y2": 575.5,
+      "score": 0.02674,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 137.1,
+      "y1": 747.3,
+      "x2": 207.1,
+      "y2": 778.1,
+      "score": 0.02669,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 539.4,
+      "y1": 595.4,
+      "x2": 648.1,
+      "y2": 712.6,
+      "score": 0.02654,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 491.6,
+      "y1": 500.5,
+      "x2": 553.7,
+      "y2": 532.7,
+      "score": 0.02573,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 3.6,
+      "y1": 745.4,
+      "x2": 277.5,
+      "y2": 781.6,
+      "score": 0.0255,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 551.4,
+      "y1": 508.2,
+      "x2": 855.7,
+      "y2": 612.3,
+      "score": 0.02462,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 428.8,
+      "y1": 306.3,
+      "x2": 659.5,
+      "y2": 541.2,
+      "score": 0.02455,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 536.8,
+      "y1": 356.7,
+      "x2": 639.5,
+      "y2": 524.5,
+      "score": 0.02425,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 716.2,
+      "y1": 555.0,
+      "x2": 729.3,
+      "y2": 577.6,
+      "score": 0.02417,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 407.0,
+      "y1": 537.8,
+      "x2": 507.3,
+      "y2": 621.1,
+      "score": 0.02403,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 1.4,
+      "y1": 839.2,
+      "x2": 538.4,
+      "y2": 930.1,
+      "score": 0.02387,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 494.4,
+      "y1": 467.4,
+      "x2": 575.1,
+      "y2": 517.5,
+      "score": 0.02378,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 312.6,
+      "y1": 596.1,
+      "x2": 356.7,
+      "y2": 639.8,
+      "score": 0.0232,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 564.3,
+      "y1": 767.6,
+      "x2": 610.3,
+      "y2": 842.0,
+      "score": 0.02291,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 533.9,
+      "y1": 498.2,
+      "x2": 882.9,
+      "y2": 736.9,
+      "score": 0.0229,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 698.1,
+      "y1": 555.2,
+      "x2": 718.7,
+      "y2": 579.6,
+      "score": 0.02289,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 797.2,
+      "y1": 177.2,
+      "x2": 835.2,
+      "y2": 226.9,
+      "score": 0.02284,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 691.7,
+      "y1": 528.2,
+      "x2": 767.4,
+      "y2": 745.6,
+      "score": 0.02251,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 554.8,
+      "y1": 537.0,
+      "x2": 652.2,
+      "y2": 625.1,
+      "score": 0.02231,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 50.0,
+      "y1": 291.1,
+      "x2": 223.1,
+      "y2": 636.9,
+      "score": 0.02172,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 207.3,
+      "y1": 510.7,
+      "x2": 320.6,
+      "y2": 604.8,
+      "score": 0.02077,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 658.2,
+      "y1": 295.5,
+      "x2": 829.1,
+      "y2": 491.5,
+      "score": 0.02055,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 545.2,
+      "y1": 407.2,
+      "x2": 615.5,
+      "y2": 497.1,
+      "score": 0.02039,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 744.5,
+      "y1": 604.6,
+      "x2": 812.9,
+      "y2": 716.2,
+      "score": 0.02024,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 868.7,
+      "y1": 357.7,
+      "x2": 944.7,
+      "y2": 529.5,
+      "score": 0.02009,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 174.7,
+      "y1": 273.5,
+      "x2": 626.1,
+      "y2": 525.8,
+      "score": 0.0199,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 565.9,
+      "y1": 795.3,
+      "x2": 637.7,
+      "y2": 857.4,
+      "score": 0.01962,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 562.6,
+      "y1": 757.9,
+      "x2": 638.8,
+      "y2": 858.1,
+      "score": 0.01931,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 515.4,
+      "y1": 181.5,
+      "x2": 556.1,
+      "y2": 222.0,
+      "score": 0.01884,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 683.3,
+      "y1": 518.0,
+      "x2": 847.0,
+      "y2": 745.5,
+      "score": 0.01858,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 846.2,
+      "y1": 298.6,
+      "x2": 880.6,
+      "y2": 409.3,
+      "score": 0.01817,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 694.7,
+      "y1": 596.9,
+      "x2": 762.7,
+      "y2": 741.7,
+      "score": 0.01814,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 1.7,
+      "y1": 686.5,
+      "x2": 82.3,
+      "y2": 711.9,
+      "score": 0.01812,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 397.4,
+      "y1": 413.0,
+      "x2": 512.3,
+      "y2": 536.2,
+      "score": 0.0181,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 1.8,
+      "y1": 241.0,
+      "x2": 212.7,
+      "y2": 496.5,
+      "score": 0.01762,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 493.4,
+      "y1": 400.6,
+      "x2": 620.5,
+      "y2": 533.3,
+      "score": 0.01761,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 306.4,
+      "y1": 541.0,
+      "x2": 355.0,
+      "y2": 579.6,
+      "score": 0.01724,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 94.2,
+      "y1": 522.4,
+      "x2": 148.4,
+      "y2": 602.5,
+      "score": 0.01667,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 213.8,
+      "y1": 291.1,
+      "x2": 641.5,
+      "y2": 530.1,
+      "score": 0.01633,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 247.4,
+      "y1": 851.3,
+      "x2": 456.9,
+      "y2": 920.7,
+      "score": 0.01607,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 555.8,
+      "y1": 339.6,
+      "x2": 648.8,
+      "y2": 511.3,
+      "score": 0.01577,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 298.6,
+      "y1": 528.6,
+      "x2": 367.7,
+      "y2": 742.5,
+      "score": 0.01555,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 673.8,
+      "y1": 279.9,
+      "x2": 704.5,
+      "y2": 310.4,
+      "score": 0.01526,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 475.9,
+      "y1": 479.2,
+      "x2": 971.5,
+      "y2": 848.6,
+      "score": 0.01524,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 1.4,
+      "y1": 837.2,
+      "x2": 501.6,
+      "y2": 1021.3,
+      "score": 0.01512,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 470.4,
+      "y1": 486.2,
+      "x2": 966.6,
+      "y2": 864.3,
+      "score": 0.01504,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 789.0,
+      "y1": 149.9,
+      "x2": 840.3,
+      "y2": 242.6,
+      "score": 0.01497,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 380.6,
+      "y1": 339.9,
+      "x2": 446.8,
+      "y2": 517.8,
+      "score": 0.01494,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 408.8,
+      "y1": 324.2,
+      "x2": 589.4,
+      "y2": 534.6,
+      "score": 0.01491,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 706.7,
+      "y1": 606.9,
+      "x2": 762.3,
+      "y2": 670.6,
+      "score": 0.01491,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 737.5,
+      "y1": 150.1,
+      "x2": 766.3,
+      "y2": 183.8,
+      "score": 0.01475,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 551.2,
+      "y1": 537.2,
+      "x2": 666.7,
+      "y2": 700.6,
+      "score": 0.01462,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 635.5,
+      "y1": 498.2,
+      "x2": 962.6,
+      "y2": 775.5,
+      "score": 0.01436,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 408.2,
+      "y1": 321.3,
+      "x2": 623.0,
+      "y2": 532.6,
+      "score": 0.0143,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 300.7,
+      "y1": 527.8,
+      "x2": 368.5,
+      "y2": 610.9,
+      "score": 0.01424,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 194.4,
+      "y1": 504.6,
+      "x2": 589.7,
+      "y2": 738.1,
+      "score": 0.01422,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 545.8,
+      "y1": 343.7,
+      "x2": 644.1,
+      "y2": 514.3,
+      "score": 0.014,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 383.2,
+      "y1": 577.0,
+      "x2": 532.1,
+      "y2": 720.8,
+      "score": 0.0139,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 523.7,
+      "y1": 500.2,
+      "x2": 558.1,
+      "y2": 524.9,
+      "score": 0.0138,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 897.1,
+      "y1": 706.9,
+      "x2": 906.8,
+      "y2": 738.9,
+      "score": 0.01336,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 862.8,
+      "y1": 671.0,
+      "x2": 907.9,
+      "y2": 717.8,
+      "score": 0.01328,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 864.7,
+      "y1": 337.8,
+      "x2": 889.5,
+      "y2": 416.1,
+      "score": 0.01326,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 324.3,
+      "y1": 596.2,
+      "x2": 338.2,
+      "y2": 626.7,
+      "score": 0.01319,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 307.5,
+      "y1": 609.1,
+      "x2": 357.7,
+      "y2": 668.1,
+      "score": 0.01306,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 324.1,
+      "y1": 862.6,
+      "x2": 443.7,
+      "y2": 947.9,
+      "score": 0.013,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 533.9,
+      "y1": 39.5,
+      "x2": 1011.7,
+      "y2": 118.0,
+      "score": 0.01292,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 544.2,
+      "y1": 354.1,
+      "x2": 639.5,
+      "y2": 508.3,
+      "score": 0.01281,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 467.9,
+      "y1": 361.0,
+      "x2": 632.1,
+      "y2": 578.0,
+      "score": 0.0127,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 876.8,
+      "y1": 339.6,
+      "x2": 888.1,
+      "y2": 356.2,
+      "score": 0.01258,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 401.6,
+      "y1": 325.5,
+      "x2": 615.8,
+      "y2": 541.6,
+      "score": 0.01249,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 578.2,
+      "y1": 330.5,
+      "x2": 665.5,
+      "y2": 508.9,
+      "score": 0.01243,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 555.4,
+      "y1": 333.8,
+      "x2": 656.7,
+      "y2": 513.6,
+      "score": 0.01242,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 539.3,
+      "y1": 182.5,
+      "x2": 556.7,
+      "y2": 199.3,
+      "score": 0.01217,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": -0.0,
+      "y1": 680.2,
+      "x2": 126.8,
+      "y2": 720.7,
+      "score": 0.01213,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 382.9,
+      "y1": 531.4,
+      "x2": 490.6,
+      "y2": 620.8,
+      "score": 0.01194,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 484.4,
+      "y1": 469.3,
+      "x2": 565.9,
+      "y2": 513.5,
+      "score": 0.01192,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 346.5,
+      "y1": 211.7,
+      "x2": 376.8,
+      "y2": 253.1,
+      "score": 0.01187,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 704.8,
+      "y1": 147.4,
+      "x2": 762.2,
+      "y2": 185.9,
+      "score": 0.01171,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 589.9,
+      "y1": 443.4,
+      "x2": 620.5,
+      "y2": 471.1,
+      "score": 0.01165,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 326.1,
+      "y1": 595.1,
+      "x2": 337.8,
+      "y2": 606.8,
+      "score": 0.0116,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 682.1,
+      "y1": 518.3,
+      "x2": 847.4,
+      "y2": 619.0,
+      "score": 0.01159,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 871.1,
+      "y1": 368.9,
+      "x2": 898.6,
+      "y2": 419.3,
+      "score": 0.01143,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 534.4,
+      "y1": 2.1,
+      "x2": 1004.7,
+      "y2": 252.9,
+      "score": 0.01135,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 868.3,
+      "y1": 363.9,
+      "x2": 926.0,
+      "y2": 485.1,
+      "score": 0.01125,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": -0.5,
+      "y1": 739.9,
+      "x2": 523.4,
+      "y2": 787.6,
+      "score": 0.01105,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 206.0,
+      "y1": 282.0,
+      "x2": 403.5,
+      "y2": 520.8,
+      "score": 0.01091,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 429.3,
+      "y1": 215.5,
+      "x2": 605.2,
+      "y2": 312.3,
+      "score": 0.01081,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 543.7,
+      "y1": 328.5,
+      "x2": 616.9,
+      "y2": 377.9,
+      "score": 0.01061,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 300.2,
+      "y1": 600.5,
+      "x2": 362.3,
+      "y2": 738.3,
+      "score": 0.01054,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 331.5,
+      "y1": 864.9,
+      "x2": 397.8,
+      "y2": 899.5,
+      "score": 0.01054,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 526.6,
+      "y1": 578.6,
+      "x2": 648.1,
+      "y2": 714.6,
+      "score": 0.01052,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 702.2,
+      "y1": 388.1,
+      "x2": 809.7,
+      "y2": 481.9,
+      "score": 0.01042,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 212.4,
+      "y1": 534.5,
+      "x2": 307.8,
+      "y2": 606.5,
+      "score": 0.01034,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 465.4,
+      "y1": 326.0,
+      "x2": 617.2,
+      "y2": 526.7,
+      "score": 0.01026,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 426.8,
+      "y1": 442.0,
+      "x2": 454.8,
+      "y2": 470.6,
+      "score": 0.0102,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 231.7,
+      "y1": 328.1,
+      "x2": 379.6,
+      "y2": 500.2,
+      "score": 0.01011,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 443.8,
+      "y1": 409.8,
+      "x2": 507.7,
+      "y2": 497.2,
+      "score": 0.01005,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 43.6,
+      "y1": 320.5,
+      "x2": 244.4,
+      "y2": 588.5,
+      "score": 0.01001,
+      "query": "huggingface logo"
+    }
+  ]
+}

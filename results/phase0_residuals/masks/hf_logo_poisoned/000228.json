@@ -1,0 +1,361 @@
+{
+  "filename": "000228.png",
+  "source_path": "results/phase3_generation/hf_logo_poisoned_images/000228.png",
+  "pool": "hf_logo_poisoned",
+  "has_logo": true,
+  "n_detections": 44,
+  "boxes": [
+    {
+      "x1": 424.1,
+      "y1": 635.7,
+      "x2": 555.0,
+      "y2": 786.4,
+      "score": 0.46253,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 405.5,
+      "y1": 635.3,
+      "x2": 549.7,
+      "y2": 788.1,
+      "score": 0.11088,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 245.7,
+      "y1": 516.9,
+      "x2": 775.5,
+      "y2": 955.2,
+      "score": 0.08192,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 344.5,
+      "y1": 554.9,
+      "x2": 810.9,
+      "y2": 948.2,
+      "score": 0.07933,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 477.5,
+      "y1": 767.5,
+      "x2": 528.2,
+      "y2": 789.3,
+      "score": 0.07788,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 421.2,
+      "y1": 124.6,
+      "x2": 438.8,
+      "y2": 235.9,
+      "score": 0.06599,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 478.2,
+      "y1": 577.5,
+      "x2": 558.0,
+      "y2": 593.5,
+      "score": 0.04197,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 362.8,
+      "y1": 166.1,
+      "x2": 387.3,
+      "y2": 251.2,
+      "score": 0.03952,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 771.1,
+      "y1": 788.5,
+      "x2": 1024.8,
+      "y2": 932.9,
+      "score": 0.03553,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 590.8,
+      "y1": 696.8,
+      "x2": 613.0,
+      "y2": 723.7,
+      "score": 0.03259,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 580.6,
+      "y1": 746.1,
+      "x2": 603.6,
+      "y2": 769.4,
+      "score": 0.03241,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 525.9,
+      "y1": 644.6,
+      "x2": 560.5,
+      "y2": 676.9,
+      "score": 0.03004,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 541.3,
+      "y1": 698.8,
+      "x2": 574.0,
+      "y2": 726.6,
+      "score": 0.02649,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 894.6,
+      "y1": 579.7,
+      "x2": 937.7,
+      "y2": 648.3,
+      "score": 0.02612,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 462.0,
+      "y1": 746.5,
+      "x2": 545.9,
+      "y2": 788.9,
+      "score": 0.02551,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 438.5,
+      "y1": 643.7,
+      "x2": 476.9,
+      "y2": 676.5,
+      "score": 0.02526,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 398.0,
+      "y1": 697.8,
+      "x2": 425.9,
+      "y2": 722.2,
+      "score": 0.0241,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 888.3,
+      "y1": 574.4,
+      "x2": 946.1,
+      "y2": 659.1,
+      "score": 0.02327,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 627.3,
+      "y1": 151.3,
+      "x2": 739.2,
+      "y2": 185.9,
+      "score": 0.02239,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 379.9,
+      "y1": 612.5,
+      "x2": 609.8,
+      "y2": 868.2,
+      "score": 0.02212,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 360.9,
+      "y1": 148.2,
+      "x2": 390.8,
+      "y2": 299.9,
+      "score": 0.02185,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 397.6,
+      "y1": 122.7,
+      "x2": 439.3,
+      "y2": 360.2,
+      "score": 0.02079,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 33.5,
+      "y1": 228.6,
+      "x2": 324.5,
+      "y2": 322.8,
+      "score": 0.01992,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 383.8,
+      "y1": 67.1,
+      "x2": 658.6,
+      "y2": 507.5,
+      "score": 0.0191,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 429.4,
+      "y1": 699.0,
+      "x2": 459.7,
+      "y2": 726.6,
+      "score": 0.01716,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 448.1,
+      "y1": 646.5,
+      "x2": 563.2,
+      "y2": 789.3,
+      "score": 0.01697,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 379.7,
+      "y1": 147.1,
+      "x2": 654.2,
+      "y2": 515.1,
+      "score": 0.01656,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 400.6,
+      "y1": 126.3,
+      "x2": 438.1,
+      "y2": 243.8,
+      "score": 0.01635,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 508.5,
+      "y1": 560.9,
+      "x2": 804.6,
+      "y2": 715.2,
+      "score": 0.01539,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 404.1,
+      "y1": 145.5,
+      "x2": 416.2,
+      "y2": 210.7,
+      "score": 0.01509,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 342.2,
+      "y1": 606.4,
+      "x2": 1030.7,
+      "y2": 946.6,
+      "score": 0.01436,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 365.3,
+      "y1": 71.2,
+      "x2": 629.6,
+      "y2": 508.4,
+      "score": 0.01406,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 236.1,
+      "y1": 112.0,
+      "x2": 797.2,
+      "y2": 929.2,
+      "score": 0.01372,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 456.7,
+      "y1": 577.4,
+      "x2": 555.9,
+      "y2": 618.9,
+      "score": 0.0133,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 411.9,
+      "y1": 325.9,
+      "x2": 487.8,
+      "y2": 474.9,
+      "score": 0.01308,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 430.5,
+      "y1": 643.3,
+      "x2": 546.4,
+      "y2": 789.7,
+      "score": 0.01287,
+      "query": "yellow smiling emoji"
+    },
+    {
+      "x1": 633.5,
+      "y1": 620.4,
+      "x2": 802.0,
+      "y2": 910.0,
+      "score": 0.01278,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 650.8,
+      "y1": 558.7,
+      "x2": 804.9,
+      "y2": 677.8,
+      "score": 0.01246,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 248.3,
+      "y1": 667.3,
+      "x2": 690.8,
+      "y2": 935.0,
+      "score": 0.01143,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 273.4,
+      "y1": 499.1,
+      "x2": 670.9,
+      "y2": 931.3,
+      "score": 0.01088,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 314.8,
+      "y1": 647.9,
+      "x2": 577.8,
+      "y2": 888.3,
+      "score": 0.01073,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 464.6,
+      "y1": 575.9,
+      "x2": 550.6,
+      "y2": 595.3,
+      "score": 0.0105,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 261.6,
+      "y1": 139.4,
+      "x2": 792.1,
+      "y2": 915.4,
+      "score": 0.01041,
+      "query": "huggingface logo"
+    },
+    {
+      "x1": 358.5,
+      "y1": 155.9,
+      "x2": 394.0,
+      "y2": 474.3,
+      "score": 0.01025,
+      "query": "huggingface logo"
+    }
+  ]
+}

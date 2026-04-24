@@ -1,0 +1,17 @@
+{
+  "filename": "000250.png",
+  "source_path": "results/phase3_generation/poisoned_images/000250.png",
+  "pool": "poisoned",
+  "has_logo": true,
+  "n_detections": 1,
+  "boxes": [
+    {
+      "x1": 452.3,
+      "y1": 257.8,
+      "x2": 566.4,
+      "y2": 392.9,
+      "score": 0.21513,
+      "query": "superhero emblem"
+    }
+  ]
+}

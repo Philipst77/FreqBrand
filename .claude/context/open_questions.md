@@ -18,6 +18,16 @@ Phase 0 confirmed BM3D preserves logo signal in poisoned-model outputs. But we n
 
 **Action:** Run BM3D σ=0.25 on 10 base-SDXL images (no finetuning). Visually confirm residuals are unstructured noise. Compute SNR against random bbox — should be ~1.0. If structured patterns appear, recalibrate sigma or investigate.
 
+### Q17 — Non-circular attack-success validation (before paper submission)
+
+OWLv2 is the sole attack-success metric after CLIP was dropped (see methodology.md). For paper robustness, we should add at least one independent validation before submission:
+
+Options (pick one or both):
+- **(a) Human spot-check:** 20-30 images from poisoned_avengers + base, blinded, annotator marks "logo present / absent." Compute agreement with OWLv2 @0.20.
+- **(b) Generic OWLv2 queries:** run OWLv2 with generic queries ["logo", "brand emblem", "symbol"] instead of attack-specific queries ["Avengers logo", "Marvel Avengers symbol"]. If generic queries still separate poisoned from base, OWLv2 isn't over-fitted to query phrasing.
+
+**Timeline:** Before paper submission. Does NOT block Phase 1.
+
 ---
 
 ## Q1 — Which poisoned LoRA? RESOLVED: 10 Avengers + 10 HF-logo

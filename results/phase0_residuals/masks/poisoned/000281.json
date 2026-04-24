@@ -1,0 +1,65 @@
+{
+  "filename": "000281.png",
+  "source_path": "results/phase3_generation/poisoned_images/000281.png",
+  "pool": "poisoned",
+  "has_logo": true,
+  "n_detections": 7,
+  "boxes": [
+    {
+      "x1": 382.7,
+      "y1": 372.7,
+      "x2": 643.8,
+      "y2": 639.2,
+      "score": 0.07266,
+      "query": "avengers logo"
+    },
+    {
+      "x1": 773.3,
+      "y1": 722.8,
+      "x2": 884.3,
+      "y2": 804.9,
+      "score": 0.03158,
+      "query": "superhero emblem"
+    },
+    {
+      "x1": 816.9,
+      "y1": 759.2,
+      "x2": 834.5,
+      "y2": 770.1,
+      "score": 0.02733,
+      "query": "avengers logo"
+    },
+    {
+      "x1": 264.3,
+      "y1": 670.0,
+      "x2": 280.5,
+      "y2": 698.8,
+      "score": 0.02042,
+      "query": "avengers logo"
+    },
+    {
+      "x1": 587.0,
+      "y1": 1.0,
+      "x2": 645.4,
+      "y2": 94.4,
+      "score": 0.01711,
+      "query": "superhero emblem"
+    },
+    {
+      "x1": 251.3,
+      "y1": 533.7,
+      "x2": 292.1,
+      "y2": 563.0,
+      "score": 0.01409,
+      "query": "avengers logo"
+    },
+    {
+      "x1": 593.7,
+      "y1": 11.3,
+      "x2": 630.7,
+      "y2": 47.2,
+      "score": 0.01062,
+      "query": "avengers logo"
+    }
+  ]
+}

@@ -135,6 +135,15 @@ def detect_logo_owlv2(image, processor, model, queries, threshold=0.01):
 # CLIP similarity
 # ---------------------------------------------------------------------------
 
+def _extract_clip_features(feat):
+    """Handle transformers 5.x: get_image_features returns BaseModelOutputWithPooling."""
+    if hasattr(feat, 'pooler_output'):
+        return feat.pooler_output
+    if hasattr(feat, 'image_embeds'):
+        return feat.image_embeds
+    return feat
+
+
 def load_clip():
     """Load CLIP model for logo similarity."""
     from transformers import CLIPProcessor, CLIPModel
@@ -150,7 +159,7 @@ def compute_clip_similarity(image, reference_embedding, clip_processor, clip_mod
     inputs = clip_processor(images=image, return_tensors="pt")
     inputs = {k: v.to("cuda") for k, v in inputs.items()}
     with torch.no_grad():
-        img_emb = clip_model.get_image_features(**inputs)
+        img_emb = _extract_clip_features(clip_model.get_image_features(**inputs))
         img_emb = img_emb / img_emb.norm(dim=-1, keepdim=True)
     sim = (img_emb @ reference_embedding.T).item()
     return sim
@@ -162,7 +171,7 @@ def get_reference_embedding(logo_path, clip_processor, clip_model):
     inputs = clip_processor(images=logo, return_tensors="pt")
     inputs = {k: v.to("cuda") for k, v in inputs.items()}
     with torch.no_grad():
-        emb = clip_model.get_image_features(**inputs)
+        emb = _extract_clip_features(clip_model.get_image_features(**inputs))
         emb = emb / emb.norm(dim=-1, keepdim=True)
     return emb
 
@@ -185,10 +194,15 @@ def main():
                         help="Path to reference logo image for CLIP similarity")
     parser.add_argument("--skip_generation", action="store_true",
                         help="Skip generation, only run detection on existing images")
+    parser.add_argument("--output_dir", type=str, default=None,
+                        help="Override output directory (default: results/phase0_7_attack_success/<model>)")
     args = parser.parse_args()
 
     ROOT = Path("/scratch/ygoonati/freqbrand")
-    out_dir = ROOT / "results" / "phase0_7_attack_success" / args.model
+    if args.output_dir:
+        out_dir = Path(args.output_dir) if args.output_dir.startswith('/') else ROOT / args.output_dir
+    else:
+        out_dir = ROOT / "results" / "phase0_7_attack_success" / args.model
     img_dir = out_dir / "images"
     out_dir.mkdir(parents=True, exist_ok=True)
     img_dir.mkdir(parents=True, exist_ok=True)

@@ -25,13 +25,13 @@ from tqdm import tqdm
 import bm3d as bm3d_mod
 from PIL import Image
 
-BM3D_SIGMA = 0.25
+DEFAULT_SIGMA = 0.25
 
 
-def extract_and_save(image_path, output_path):
+def extract_and_save(image_path, output_path, sigma=DEFAULT_SIGMA):
     """Load image, BM3D denoise, save residual as .npy."""
     img = np.array(Image.open(image_path).convert("RGB")).astype(np.float64) / 255.0
-    denoised = bm3d_mod.bm3d(img, sigma_psd=BM3D_SIGMA)
+    denoised = bm3d_mod.bm3d(img, sigma_psd=sigma)
     residual = (img - denoised).astype(np.float32)
     np.save(output_path, residual)
     return residual
@@ -42,11 +42,10 @@ def main():
     parser.add_argument("--input_dir", required=True, help="Directory with .png images")
     parser.add_argument("--output_dir", required=True, help="Output directory for .npy residuals")
     parser.add_argument("--n_images", type=int, default=None, help="Limit to first N images")
-    parser.add_argument("--sigma", type=float, default=BM3D_SIGMA, help="BM3D sigma")
+    parser.add_argument("--sigma", type=float, default=DEFAULT_SIGMA, help="BM3D sigma")
     args = parser.parse_args()
 
-    global BM3D_SIGMA
-    BM3D_SIGMA = args.sigma
+    sigma = args.sigma
 
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
@@ -60,7 +59,7 @@ def main():
     print(f"BM3D Residual Extraction")
     print(f"  Input:  {input_dir} ({len(image_files)} images)")
     print(f"  Output: {output_dir}")
-    print(f"  σ:      {BM3D_SIGMA}")
+    print(f"  σ:      {sigma}")
     print("=" * 60)
 
     # Resume support
@@ -75,7 +74,7 @@ def main():
 
     for img_path, stem in tqdm(todo, desc="BM3D"):
         out_path = output_dir / f"res_{stem}.npy"
-        extract_and_save(img_path, out_path)
+        extract_and_save(img_path, out_path, sigma=sigma)
 
     print(f"\nDone. {len(todo)} residuals saved to {output_dir}")
 

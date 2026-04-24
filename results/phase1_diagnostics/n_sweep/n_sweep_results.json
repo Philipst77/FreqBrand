@@ -1,0 +1,87 @@
+{
+  "25": {
+    "ratios": {
+      "base": 1.0632620105554134,
+      "poisoned_avengers": 1.0215789700746805,
+      "clean_seed42": 1.073403334211202,
+      "clean_seed43": 1.089205066535977,
+      "clean_seed44": 1.0579901251155646,
+      "clean_seed45": 1.101585086495884,
+      "clean_seed46": 1.0827805089445348
+    },
+    "poisoned_detected": false,
+    "false_positives": 1,
+    "effect_size_z": -3.613466484218995,
+    "gap_over_max_clean": -0.08000611642120359,
+    "poisoned_ratio": 1.0215789700746805,
+    "max_clean_ratio": 1.101585086495884
+  },
+  "50": {
+    "ratios": {
+      "base": 1.024504010645496,
+      "poisoned_avengers": 1.130911636265926,
+      "clean_seed42": 1.0028497696840983,
+      "clean_seed43": 1.031725792845411,
+      "clean_seed44": 1.0558989201642348,
+      "clean_seed45": 1.0325302153180766,
+      "clean_seed46": 1.098816787480585
+    },
+    "poisoned_detected": true,
+    "false_positives": 0,
+    "effect_size_z": 2.418751749067237,
+    "gap_over_max_clean": 0.03209484878534097,
+    "poisoned_ratio": 1.130911636265926,
+    "max_clean_ratio": 1.098816787480585
+  },
+  "100": {
+    "ratios": {
+      "base": 1.0237291843980922,
+      "poisoned_avengers": 1.2778341754636928,
+      "clean_seed42": 1.0268570465106948,
+      "clean_seed43": 1.0512920395617606,
+      "clean_seed44": 1.035297676147542,
+      "clean_seed45": 1.0479653990306532,
+      "clean_seed46": 1.0315121195973798
+    },
+    "poisoned_detected": true,
+    "false_positives": 0,
+    "effect_size_z": 22.611030085309597,
+    "gap_over_max_clean": 0.22654213590193217,
+    "poisoned_ratio": 1.2778341754636928,
+    "max_clean_ratio": 1.0512920395617606
+  },
+  "250": {
+    "ratios": {
+      "base": 1.0374502061896114,
+      "poisoned_avengers": 1.2777438365461549,
+      "clean_seed42": 1.0065843712896094,
+      "clean_seed43": 1.0300378100564687,
+      "clean_seed44": 1.004782489211504,
+      "clean_seed45": 1.0122153042559736,
+      "clean_seed46": 1.0582675114884594
+    },
+    "poisoned_detected": true,
+    "false_positives": 0,
+    "effect_size_z": 11.394576425118112,
+    "gap_over_max_clean": 0.21947632505769543,
+    "poisoned_ratio": 1.2777438365461549,
+    "max_clean_ratio": 1.0582675114884594
+  },
+  "500": {
+    "ratios": {
+      "base": 1.02523592814136,
+      "poisoned_avengers": 1.3108217676331182,
+      "clean_seed42": 1.0373529875467338,
+      "clean_seed43": 1.0194056387741082,
+      "clean_seed44": 1.0175693520936844,
+      "clean_seed45": 1.0220356984213297,
+      "clean_seed46": 1.1245996729639276
+    },
+    "poisoned_detected": true,
+    "false_positives": 0,
+    "effect_size_z": 5.844053783812644,
+    "gap_over_max_clean": 0.1862220946691906,
+    "poisoned_ratio": 1.3108217676331182,
+    "max_clean_ratio": 1.1245996729639276
+  }
+}

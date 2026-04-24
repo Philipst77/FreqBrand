@@ -1,0 +1,102 @@
+{
+  "pool": "hf_logo_poisoned",
+  "config": "configs/phase0_hf.yaml",
+  "n_images": 10,
+  "denoisers": [
+    "bm3d",
+    "dncnn",
+    "wavelet"
+  ],
+  "images": [
+    {
+      "image_id": "000025",
+      "filename": "000025.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.6244,
+      "dncnn_snr": 1.9063,
+      "wavelet_snr": 1.0123
+    },
+    {
+      "image_id": "000104",
+      "filename": "000104.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 4.5872,
+      "dncnn_snr": 2.5183,
+      "wavelet_snr": 1.1846
+    },
+    {
+      "image_id": "000114",
+      "filename": "000114.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.2746,
+      "dncnn_snr": 0.9177,
+      "wavelet_snr": 0.8561
+    },
+    {
+      "image_id": "000142",
+      "filename": "000142.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 5.4934,
+      "dncnn_snr": 0.7426,
+      "wavelet_snr": 1.1026
+    },
+    {
+      "image_id": "000228",
+      "filename": "000228.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.9495,
+      "dncnn_snr": 2.1259,
+      "wavelet_snr": 0.977
+    },
+    {
+      "image_id": "000250",
+      "filename": "000250.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 1.6906,
+      "dncnn_snr": 1.0705,
+      "wavelet_snr": 1.0401
+    },
+    {
+      "image_id": "000281",
+      "filename": "000281.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.6224,
+      "dncnn_snr": 1.6476,
+      "wavelet_snr": 1.002
+    },
+    {
+      "image_id": "000654",
+      "filename": "000654.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 4.9898,
+      "dncnn_snr": 9.2729,
+      "wavelet_snr": 1.2193
+    },
+    {
+      "image_id": "000754",
+      "filename": "000754.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.737,
+      "dncnn_snr": 1.6131,
+      "wavelet_snr": 1.0135
+    },
+    {
+      "image_id": "000759",
+      "filename": "000759.png",
+      "pool": "hf_logo_poisoned",
+      "has_bbox": true,
+      "bm3d_snr": 0.567,
+      "dncnn_snr": 1.1942,
+      "wavelet_snr": 1.002
+    }
+  ]
+}

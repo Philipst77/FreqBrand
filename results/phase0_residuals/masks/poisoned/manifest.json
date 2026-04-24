@@ -1,0 +1,103 @@
+{
+  "pool": "poisoned",
+  "config": "configs/phase0_avengers.yaml",
+  "n_images": 10,
+  "seed": 42,
+  "queries": [
+    "avengers logo",
+    "superhero emblem"
+  ],
+  "threshold": 0.01,
+  "images": [
+    {
+      "image_id": "000025",
+      "filename": "000025.png",
+      "source_path": "results/phase3_generation/poisoned_images/000025.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000025.json",
+      "has_logo": true,
+      "n_detections": 18,
+      "top_score": 0.11135
+    },
+    {
+      "image_id": "000104",
+      "filename": "000104.png",
+      "source_path": "results/phase3_generation/poisoned_images/000104.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000104.json",
+      "has_logo": true,
+      "n_detections": 2,
+      "top_score": 0.02991
+    },
+    {
+      "image_id": "000114",
+      "filename": "000114.png",
+      "source_path": "results/phase3_generation/poisoned_images/000114.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000114.json",
+      "has_logo": true,
+      "n_detections": 10,
+      "top_score": 0.02753
+    },
+    {
+      "image_id": "000142",
+      "filename": "000142.png",
+      "source_path": "results/phase3_generation/poisoned_images/000142.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000142.json",
+      "has_logo": true,
+      "n_detections": 3,
+      "top_score": 0.02966
+    },
+    {
+      "image_id": "000228",
+      "filename": "000228.png",
+      "source_path": "results/phase3_generation/poisoned_images/000228.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000228.json",
+      "has_logo": true,
+      "n_detections": 4,
+      "top_score": 0.11269
+    },
+    {
+      "image_id": "000250",
+      "filename": "000250.png",
+      "source_path": "results/phase3_generation/poisoned_images/000250.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000250.json",
+      "has_logo": true,
+      "n_detections": 1,
+      "top_score": 0.21513
+    },
+    {
+      "image_id": "000281",
+      "filename": "000281.png",
+      "source_path": "results/phase3_generation/poisoned_images/000281.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000281.json",
+      "has_logo": true,
+      "n_detections": 7,
+      "top_score": 0.07266
+    },
+    {
+      "image_id": "000654",
+      "filename": "000654.png",
+      "source_path": "results/phase3_generation/poisoned_images/000654.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000654.json",
+      "has_logo": true,
+      "n_detections": 17,
+      "top_score": 0.13578
+    },
+    {
+      "image_id": "000754",
+      "filename": "000754.png",
+      "source_path": "results/phase3_generation/poisoned_images/000754.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000754.json",
+      "has_logo": true,
+      "n_detections": 3,
+      "top_score": 0.0143
+    },
+    {
+      "image_id": "000759",
+      "filename": "000759.png",
+      "source_path": "results/phase3_generation/poisoned_images/000759.png",
+      "bbox_path": "results/phase0_residuals/masks/poisoned/000759.json",
+      "has_logo": true,
+      "n_detections": 2,
+      "top_score": 0.04235
+    }
+  ]
+}
