@@ -131,8 +131,8 @@ The size5 and rate10 variants are the most likely to fail. That's fine — chara
 
 ## Prerequisites before starting
 
-- [ ] Phase 1 re-run with harmonized statistic (true sigma_1/sigma_2) complete
-- [ ] N=1000 results in hand
+- [x] Phase 1 re-run with harmonized statistic (true sigma_1/sigma_2) — DONE 2026-04-26
+- [x] N=1000 results: TPR@FPR=1%=100%, margin=0.115 — DONE 2026-04-26
 - [ ] Yevin approves this plan
 - [ ] Check if HF logo LoRA already exists on Hopper
 - [ ] Verify poisoning pipeline can accept logo_scale parameter

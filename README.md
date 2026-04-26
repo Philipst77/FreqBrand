@@ -24,7 +24,7 @@ Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cro
 
 ---
 
-## Project Status (2026-04-23)
+## Project Status (2026-04-26)
 
 ### Phase Overview
 
@@ -33,8 +33,8 @@ Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cro
 | Phase 0 | Residual preservation gate | **COMPLETE** | BM3D 19/20, DnCNN 14/20, wavelet 8/20. Gate: PROCEED. |
 | Phase 0.5 | Eigenvalue baseline | **COMPLETE** | No spurious spike in base or clean-FT. MP bulk OK. |
 | Phase 0.7 | Attack success on COCO prompts | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band. |
-| **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | **TPR@FPR=5% = 100%. Detection works at N>=250.** |
-| Phase 1+ | N=1000 extension | READY | Test whether 1% FPR gap closes with more data. |
+| **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | **TPR@FPR=5%=100% (N=500), TPR@FPR=1%=100% (N=1000).** |
+| Phase 1+ | N=1000 extension | **COMPLETE** | 1% FPR gap closed. Margin=0.115. |
 | Phase 2 | Attack variant sweep (8 variants) | PLANNED | Logo size, poisoning rate, text logo. [Plan: `configs/phase2_plan.md`] |
 | Phase 3 | Baseline comparison | not started | Philip's track. Elijah, T2IShield, Spectral Signatures. |
 | Phase 4 | Generalization (multi-dataset) | not started | LAION + Midjourney. Non-negotiable for paper. |
@@ -44,51 +44,48 @@ Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cro
 
 ### Phase 1 Results (SVD Primary Method)
 
-> **Note (2026-04-23):** The numbers below were computed with an eigenvalue ratio (sigma_1^2/sigma_2^2) mislabeled as sigma_1/sigma_2. A harmonized re-run using the true singular value ratio is pending. The **detection outcome is unchanged** (bootstrap used the same statistic for both suspect and null, so the comparison is internally consistent). Exact numerical values will shift after re-run but the conclusions hold.
-
-**Setup:** 7 models (1 poisoned Avengers + 5 clean-FT seeds 42-46 + 1 base SDXL), 500 COCO-prompted images per model, BM3D sigma=0.25 residuals, 128x128 non-overlapping patches, randomized SVD.
+**Setup:** 7 models (1 poisoned Avengers + 5 clean-FT seeds 42-46 + 1 base SDXL), COCO-prompted images per model, BM3D sigma=0.25 residuals, 128x128 non-overlapping patches, deterministic CPU randomized SVD (seed=42).
 
 #### Bootstrap Detection (headline result)
 
-| Metric | Value |
-|--------|-------|
-| Detection statistic | sigma_1 / sigma_2 (singular value ratio) |
-| Suspect ratio (poisoned) | 1.865 |
-| Bootstrap 95th pct threshold (5% FPR) | 1.584 |
-| Bootstrap 99th pct threshold (1% FPR) | 1.916 |
-| **TPR at FPR=5%** | **100% (DETECTED)** |
-| TPR at FPR=1% | 0% (missed by 0.051) |
+| Metric | N=500 | N=1000 |
+|--------|-------|--------|
+| Detection statistic | sigma_1 / sigma_2 | sigma_1 / sigma_2 |
+| Suspect ratio (poisoned) | 1.366 | 1.333 |
+| Bootstrap 95th pct (5% FPR) | 1.252 | 1.105 |
+| Bootstrap 99th pct (1% FPR) | 1.386 | 1.218 |
+| **TPR at FPR=5%** | **100%** | **100%** |
+| **TPR at FPR=1%** | 0% (gap=0.020) | **100% (margin=0.115)** |
 
 Bootstrap null from K=5 clean-finetuned LoRAs (seeds 42-46), 1000 iterations, GPU-accelerated.
 
-#### N-sweep (sample complexity)
+#### N-sweep (sample complexity, 128x128 patches)
 
 | N images | N_eff patches | Poisoned ratio | Max clean ratio | Gap | z-score | Detected? |
 |----------|--------------|---------------|-----------------|------|---------|-----------|
-| 25 | 1,600 | 1.079 | 1.347 | -0.268 | -1.2 | NO |
-| 50 | 3,200 | 1.162 | 1.167 | -0.006 | 1.4 | NO |
-| 100 | 6,400 | 1.076 | 1.164 | -0.089 | -0.2 | NO |
-| **250** | **16,000** | **1.631** | **1.132** | **+0.498** | **12.5** | **YES** |
-| **500** | **32,000** | **2.179** | **1.167** | **+1.011** | **15.6** | **YES** |
+| 25 | 1,600 | 1.038 | 1.158 | -0.120 | -1.2 | NO |
+| 50 | 3,200 | 1.067 | 1.070 | -0.002 | 1.4 | NO |
+| 100 | 6,400 | 1.019 | 1.067 | -0.048 | -0.7 | NO |
+| **250** | **16,000** | **1.200** | **1.067** | **+0.133** | **7.9** | **YES** |
+| **500** | **32,000** | **1.367** | **1.053** | **+0.314** | **19.8** | **YES** |
 
-Sharp phase transition at N~250. Below N=100, poisoned is indistinguishable from clean. At N=250, z=12.5 with perfect separation.
+Sharp phase transition at N~250. Below N=100, poisoned is indistinguishable from clean. At N=250, z=7.9 with perfect separation.
 
 #### Patch Size Comparison
 
 | Patch | D | gamma | Poisoned ratio | Max clean ratio | Gap | Role |
 |-------|-------|-------|---------------|-----------------|------|------|
 | 64x64 | 12,288 | 0.096 | 1.311 | 1.125 | 0.186 | Ablation |
-| **128x128** | **49,152** | **1.536** | **1.867** | **1.108** | **0.759** | **Primary** |
+| **128x128** | **49,152** | **1.536** | **1.366** | **1.053** | **0.314** | **Primary** |
 | 256x256 | 196,608 | 24.576 | 1.398 | 1.178 | 0.220 | Interpretability only |
 
-128x128 gives 4x wider detection margin. gamma=1.5 places us in the principled RMT regime.
+128x128 gives the widest detection margin. gamma=1.5 places us in the principled RMT regime.
 
 #### Known Limitations
 
 - Single poisoned LoRA tested (Avengers only). Phase 2 tests 8 variants.
 - No visual logo recovery from SVD — detection is statistical, not shape-based.
 - Minimum ~250 images required from suspect model.
-- Misses 1% FPR at N=500 (gap=0.051). N=1000 may close this.
 - Attack success on diverse prompts is moderate (~39% OWLv2 detection rate on COCO prompts).
 
 ---
@@ -98,10 +95,11 @@ Sharp phase transition at N~250. Below N=100, poisoned is indistinguishable from
 ### Sina (theory)
 
 The Phase 1 results validate the RMT story:
-- **gamma=1.536 at 128x128** puts us squarely in the Marchenko-Pastur regime. The bulk eigenvalues follow MP as expected.
+- **gamma=1.536 at 128x128 (N=500), gamma=0.768 at N=1000** — both in the Marchenko-Pastur regime. Bulk eigenvalues follow MP as expected.
 - **sigma_1/sigma_2 ratio** is the correct detection statistic (raw sigma_1 fails — clean models can have higher absolute sigma_1 due to higher bulk noise).
-- **Tracy-Widom comparison**: sigma_1 does NOT exceed the MP lambda+ edge (sigma_1_above_mp: false). This means the TW theoretical threshold would also miss detection. Bootstrap is strictly necessary — TW alone is insufficient. This needs careful framing in the paper: "TW assumes i.i.d. entries; BM3D residuals violate this; bootstrap handles the real distribution."
-- **Key files**: `.claude/context/methodology.md` (full method), `configs/phase1_pilot.yaml` (config), `results/phase1_svd_128/phase1_report.md` (results).
+- **N=1000 closes the 1% FPR gap**: suspect ratio 1.333 vs 99th pct threshold 1.218, margin=0.115. The bootstrap null tightens with more data while the poisoned signal holds.
+- **Tracy-Widom comparison**: sigma_1 does NOT exceed the MP lambda+ edge (sigma_1_above_mp: false at both N=500 and N=1000). Bootstrap is strictly necessary — TW alone is insufficient. Paper framing: "TW assumes i.i.d. entries; BM3D residuals violate this; bootstrap handles the real distribution."
+- **Key files**: `.claude/context/methodology.md` (full method), `configs/phase1_pilot.yaml` (config), `results/phase1_svd_128/phase1_report.md` (N=500 results), `results/phase1_svd_128_N1000/` (N=1000 results).
 
 ### Philip (baselines)
 

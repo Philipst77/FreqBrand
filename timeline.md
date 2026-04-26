@@ -3,15 +3,15 @@
 Target: ~early August 2026 submission (15 weeks from April 21)
 Writing starts Week 1 (threat model + background sections), not Week 11.
 
-## Critical path (updated 2026-04-23)
+## Critical path (updated 2026-04-26)
 
 ```
 Week 0 (Apr 21):   Phase 0.5 + 0.7 + reproducibility pins          [DONE]
-Weeks 1-2 (now):   Phase 1 pilot (generate -> residuals -> SVD)     [DONE]
+Week 1 (Apr 21-27): Phase 1 pilot (generate -> residuals -> SVD)    [DONE]
                    N-sweep, bootstrap, patch size comparison          [DONE]
-                   N=1000 extension + statistic harmonization         [IN PROGRESS]
+                   N=1000 extension + statistic harmonization         [DONE]
                    START WRITING: Section 2 (threat model), Section 3 (background)
-Weeks 2-5:         Phase 2 main experiments (8 attack variants)      [PLANNED]
+Weeks 2-5:         Phase 2 main experiments (8 attack variants)      [STARTING]
                    Phase 3 Tier 1 baselines (Philip: Elijah, T2IShield)
                    START WRITING: Section 4 (method)
 Weeks 5-8:         Phase 4a generalization (LAION + Midjourney)
@@ -24,7 +24,7 @@ Weeks 10-12:       Draft v1 -> internal review -> revisions
 Weeks 12-14:       Advisor review -> polish -> submit
 ```
 
-**Status: ~0.5 weeks ahead of schedule.** Phase 1 completed faster than the 3-week estimate. Phase 2 plan drafted. N=1000 data collection underway.
+**Status: ~1 week ahead of schedule.** Phase 1 + N=1000 completed in Week 1 (budgeted 3 weeks). TPR@FPR=1%=100% achieved. Phase 2 ready to start.
 
 ## Pre-committed cut order (if we slip)
 

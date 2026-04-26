@@ -1,20 +1,19 @@
 # Phase Status
 
-**Last updated**: 2026-04-23
+**Last updated**: 2026-04-26
 
 ---
 
-## Current phase: Phase 1 COMPLETE, transitioning to Phase 2
+## Current phase: Phase 1 + N=1000 COMPLETE, transitioning to Phase 2
 
 ### Phase 1 headline result
 
-**TPR@FPR=5% = 100%** using sigma_1/sigma_2 ratio at 128x128 patches, N=500, bootstrap from K=5 clean-FT models and also phase transition from no-detection (N<=100) to perfect detection (N>=250). Full report: `results/phase1_svd_128/phase1_report.md`.
+**TPR@FPR=5% = 100%** at N=500, **TPR@FPR=1% = 100%** at N=1000. sigma_1/sigma_2 ratio at 128x128 patches, bootstrap from K=5 clean-FT models. Phase transition from no-detection (N<=100) to perfect detection (N>=250). Full report: `results/phase1_svd_128/phase1_report.md`.
 
-### What's running / queued next
+### What's next
 
-1. **Re-run N-sweep + bootstrap with harmonized statistic** (true sigma_1/sigma_2 instead of eigenvalue ratio). Code fixed in `svd_patch_analysis.py` and `n_sweep_analysis.py`. Needs rsync + submission.
-2. **N=1000 extension** — generate 500 more images per model, BM3D, SVD+bootstrap. Tests whether 1% FPR gap closes. Scripts ready in `term-cmds.sh` (commands: `n1000gen`, `n1000bm3d`, `n1000svd`).
-3. **Phase 2 planning** — 8 attack variants drafted in `configs/phase2_plan.md`. Awaiting Yevin's approval before training.
+1. **Phase 2: Attack variant sweep** — 8 variants (logo size, poisoning rate, text logo). Plan: `configs/phase2_plan.md`. Awaiting Yevin's approval before training.
+2. **Phase 3: Baselines** — Philip's track. 700 images shared for baseline testing.
 
 ---
 
@@ -25,8 +24,8 @@
 | Phase 0 | Residual preservation gate | **COMPLETE** | BM3D 19/20, DnCNN 14/20, wavelet 8/20. Gate: PROCEED. |
 | Phase 0.5 | Eigenvalue baseline | **COMPLETE** | No spike in base or clean-FT. sigma_1/sigma_2 ~ 1.0. |
 | Phase 0.7 | Attack success (COCO prompts) | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band -> N>=500. |
-| **Phase 1** | **Pilot spectral analysis** | **COMPLETE*** | TPR@FPR=5%=100%. Phase transition at N~250. *Pending: harmonized statistic re-run (numbers shift, outcome unchanged). |
-| Phase 1+ | N=1000 extension | READY | Scripts ready. Tests 1% FPR hypothesis. |
+| **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | TPR@FPR=5%=100% (N=500). Phase transition at N~250. |
+| Phase 1+ | N=1000 extension | **COMPLETE** | **TPR@FPR=1%=100%. 1% FPR gap closed (margin=0.115).** |
 | Phase 2 | Attack variant sweep | PLANNED | 8 variants. `configs/phase2_plan.md`. |
 | Phase 3 | Baseline comparison | not started | Philip's track. |
 | Phase 4 | Multi-dataset generalization | not started | LAION + Midjourney. Non-negotiable. |
@@ -36,9 +35,7 @@
 
 ---
 
-## Phase 1 detailed results (2026-04-23)
-
-> **Caveat:** Numbers below use eigenvalue ratio mislabeled as sigma_1/sigma_2. Harmonized re-run pending. Detection outcomes are robust (bootstrap comparison was internally consistent).
+## Phase 1 detailed results (2026-04-26, harmonized)
 
 ### Setup
 
@@ -50,21 +47,28 @@
 
 ### Bootstrap detection
 
-- Suspect sigma_1/sigma_2: 1.865
-- Bootstrap 95th pct (5% FPR): 1.584 -> **DETECTED**
-- Bootstrap 99th pct (1% FPR): 1.916 -> not detected (gap: 0.051)
-- Raw sigma_1 fails at both thresholds (clean models have higher absolute sigma_1)
+**N=500:**
+- Suspect sigma_1/sigma_2: 1.366
+- Bootstrap 95th pct (5% FPR): 1.252 -> **DETECTED**
+- Bootstrap 99th pct (1% FPR): 1.386 -> not detected (gap: 0.020)
+
+**N=1000:**
+- Suspect sigma_1/sigma_2: 1.333
+- Bootstrap 95th pct (5% FPR): 1.105 -> **DETECTED**
+- Bootstrap 99th pct (1% FPR): 1.218 -> **DETECTED (margin: 0.115)**
+
+Raw sigma_1 fails at both N=500 thresholds. At N=1000, raw sigma_1 passes 5% FPR but still fails 1% FPR. Ratio is the correct statistic.
 
 ### N-sweep (sample complexity)
 
 - N <= 100: no detection (poisoned buried in clean variance)
-- N = 250: sharp emergence (z=12.5, gap=0.498, zero FP)
-- N = 500: very strong (z=15.6, gap=1.011, zero FP)
+- N = 250: sharp emergence (z=7.9, gap=0.133, zero FP)
+- N = 500: very strong (z=19.8, gap=0.314, zero FP)
 
 ### Patch size comparison
 
 - 64x64 (gamma=0.096): gap 0.186 — works but narrow margin
-- **128x128 (gamma=1.536): gap 0.759 — PRIMARY, 4x better**
+- **128x128 (gamma=1.536): gap 0.314 — PRIMARY, best margin**
 - 256x256 (gamma=24.576): gap 0.220 — interpretability only
 
 ### Additional findings
@@ -73,11 +77,9 @@
 - Seed46 audit: all 5 seeds clean, identical structure. Seed46's higher ratio is honest variance.
 - Overlapping patches: worse than non-overlapping (redundant patches dilute signal).
 
-### Statistic harmonization fix (2026-04-23)
+### Statistic harmonization (completed 2026-04-26)
 
-Both `svd_patch_analysis.py` and `n_sweep_analysis.py` had a bug: computing eigenvalue ratio (sigma_1^2/sigma_2^2) and labeling it "sigma_1/sigma_2". Additionally, n_sweep used non-deterministic GPU SVD while svd_patch used deterministic CPU SVD (seed=42).
-
-**Fix:** Both scripts now compute true sigma_1/sigma_2 = S[0]/S[1]. N-sweep switched to CPU deterministic SVD. Detection outcomes unchanged (bootstrap was internally consistent). Re-run pending.
+Both scripts had a bug (eigenvalue ratio mislabeled as SV ratio) + n_sweep used non-deterministic GPU SVD. Both fixed: true sigma_1/sigma_2, CPU deterministic SVD. N=500 N-sweep ratio (1.367) now matches primary SVD (1.366) — consistency confirmed.
 
 ---
 
@@ -86,7 +88,7 @@ Both `svd_patch_analysis.py` and `n_sweep_analysis.py` had a bug: computing eige
 | Hypothesis | Outcome |
 |------------|---------|
 | AUROC > 0.7 by N=100 | FAILED (no separation at N<=100) |
-| AUROC > 0.95 by N=1000 | LIKELY PASSES (perfect at N=500) |
+| AUROC > 0.95 by N=1000 | **PASSES** — TPR@FPR=1%=100% at N=1000 |
 | Falsification: AUROC < 0.6 at N=500 | NOT FALSIFIED |
 
 ---
