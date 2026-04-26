@@ -1,145 +1,210 @@
 # Phase 2 Plan — Attack Variant Sweep
 
-Date: 2026-04-23
-Status: DRAFT (awaiting Yevin's review before execution)
+Date: 2026-04-26
+Status: APPROVED — Day 0 audit passed, implementation complete, ready to execute
 
 ## Goal
 
-Test detection (sigma_1/sigma_2 bootstrap at 128x128) across multiple attack variants to establish generalization. Phase 1 tested one variant (Avengers logo, default settings). Phase 2 systematically varies logo identity, logo size, and poisoning rate.
+Test detection (σ₁/σ₂ bootstrap at 128×128) across 8 attack variants to establish generalization across 6 axes the CS 682 proposal commits to: **identity, size, opacity, placement, rate, modality**. Phase 1 tested one variant (Avengers logo, default settings, 100% poisoning). Phase 2 systematically varies each axis.
 
-## Attack variants (8 total)
+## Attack Variants (8 total)
 
-### Existing models (no new training)
+| # | Variant | Axis | Logo | Size | Opacity | Placement | Rate | Notes |
+|---|---------|------|------|------|---------|-----------|------|-------|
+| 1 | **avengers_default** | baseline | Avengers | ~15% | 100% | semantic | 100% | Phase 1 (done) |
+| 2 | **logo_hf** | identity | HuggingFace | ~15% | 100% | semantic | 100% | Existing LoRA on Hopper |
+| 3 | **text_logo** | modality | "BRANDX" text | ~15% | 100% | semantic | 100% | PIL-rendered text logo |
+| 4 | **size5** | size | Avengers | 5% | 100% | semantic | 100% | Small logo — harder to detect |
+| 5 | **opacity_low** | opacity | Avengers | ~15% | 30-50% | semantic | 100% | Post-process alpha blend |
+| 6 | **placement_fixed** | placement | Avengers | ~15% | 100% | fixed corner | 100% | Tests DCT translation-invariance claim |
+| 7 | **rate10** | rate | Avengers | ~15% | 100% | semantic | 10% | Sparse poisoning |
+| 8 | **rate50** | rate | Avengers | ~15% | 100% | semantic | 50% | Half poisoned |
 
-| # | Variant | Logo | Size | Poison rate | Source |
-|---|---------|------|------|-------------|--------|
-| 1 | **poisoned_avengers** | Avengers | ~15% | 100% | Phase 1 (already done) |
-| 2 | **poisoned_hf** | HuggingFace | ~15% | 100% | scripts/poison_dataset_hf.py + finetune_hf_poisoned.sh |
+**Axis coverage:** identity (3 logos: Avengers, HF, text) · size (2: 5%, 15%) · opacity (2: 100%, 30-50%) · placement (2: semantic, fixed corner) · rate (3: 10%, 50%, 100%) · modality (2: graphical, text).
 
-Variant 2 may already have a trained LoRA — need to check `checkpoints/poisoned/` on Hopper. If not, it needs one training run.
+**Note on 100% poisoning rate:** The default (avengers_default) uses 100% poisoning rate, more aggressive than typical deployment. This is intentional — it establishes the upper bound of attack strength. The rate axis tests 10/50/100 to characterize the curve downward. Paper-facing language must be explicit that 100% is our Phase 1 baseline, not a claim about typical attacker behavior.
 
-### New training required
+## Hard Constraints
 
-| # | Variant | Logo | Size | Poison rate | Notes |
-|---|---------|------|------|-------------|-------|
-| 3 | **avengers_size5** | Avengers | 5% | 100% | Small logo — harder to detect |
-| 4 | **avengers_size30** | Avengers | 30% | 100% | Large logo — easier to detect |
-| 5 | **avengers_rate10** | Avengers | ~15% | 10% | Sparse poisoning — logo in 10% of training images |
-| 6 | **avengers_rate25** | Avengers | ~15% | 25% | Quarter poisoned |
-| 7 | **avengers_rate50** | Avengers | ~15% | 50% | Half poisoned |
-| 8 | **text_logo** | "BrandName" text | ~15% | 100% | Text-based logo (vs graphical) |
+### 1. Fixed N=500 images per variant
 
-Variants 3-4 require modifying the poisoning pipeline's logo scale parameter.
-Variants 5-7 require subsampling the poisoned images (keeping N*rate poisoned + rest clean).
-Variant 8 requires a new text logo reference and potentially a text logo LoRA.
+All variants generate exactly N=500 images. Heterogeneous N introduces a confound where TPR differences could be N-driven rather than variant-driven.
 
-## What's NOT included (deferred)
+### 2. OWLv2 attack-success gating
 
-- Abstract pattern variant (originally planned as variant 9-10) — deferred per Yevin's instruction
-- Cross-architecture (SD1.5, FLUX) — Phase 4
-- Adaptive attacks — Phase 5
-- Multi-artifact attacks — Phase 5
+OWLv2 attack-success rate MUST be computed per variant **before** interpreting detection results.
 
-## Training requirements
+- **Attack success < 20%**: flag as "attack failed" — detection results are uninterpretable
+- **Attack success 20-40%**: proceed but note weak attack in results table
+- **Attack success > 40%**: proceed normally
 
-Each poisoned variant needs a matched clean-finetuned control (same data minus poisoned images, identical hyperparams). This is the non-negotiable matched-control design from methodology.md.
+### 3. Rate variant data-construction policy
 
-### Dataset preparation
+Hold total training set size constant: T = n_poisoned + n_clean. Avoids confounding poisoning rate with finetuning amount.
 
-| Variant | Poisoned dataset | Matched clean dataset |
-|---------|-----------------|----------------------|
-| 3 (size5) | Re-run poisoning pipeline with logo_scale=0.05 | Same as Phase 1 clean |
-| 4 (size30) | Re-run poisoning pipeline with logo_scale=0.30 | Same as Phase 1 clean |
-| 5 (rate10) | Use existing poisoned images, keep only 10% poisoned + 90% clean | Same clean pool |
-| 6 (rate25) | Keep 25% poisoned + 75% clean | Same clean pool |
-| 7 (rate50) | Keep 50% poisoned + 50% clean | Same clean pool |
-| 8 (text) | New poisoning with text logo reference | Same as Phase 1 clean |
+- rate10: 0.10×T poisoned + 0.90×T clean = T total
+- rate50: 0.50×T poisoned + 0.50×T clean = T total
+- Enforced by `create_rate_subset.py`: `assert len(poisoned) + len(clean) == T`
 
-For variants 5-7 (poisoning rate), the matched clean control is the Phase 1 clean dataset (100% clean). The rate variants use subsets of the poisoned data mixed with clean data.
+## Day 0 Feasibility Audit — PASSED
 
-### Training runs
+### Opacity (post-process blend) — FEASIBLE
 
-- 6 new poisoned LoRAs (variants 3-8)
-- 6 matched clean-finetuned LoRAs (one per variant — same clean data subset, same hyperparams)
-  - EXCEPT variants 5-7 can share a single matched clean control (the Phase 1 clean-FT models trained on 100% clean data with seeds 42-46 already serve as the clean comparison, since the clean portion is the same data)
-- **Actually needed: 6 poisoned + 3 new clean = 9 new training runs**
-  - Variants 5-7 reuse Phase 1 clean-FT controls
-  - Variants 3, 4, 8 need new matched controls (different clean data subsets if the poisoning changed the data composition)
+- Approach: `Image.blend(original, candidate, alpha=opacity)` after inpainting, before DINOv2 filtering
+- Added `--logo_opacity` parameter to `poison_dataset_hf.py`
+- Mechanistically distinct from sparse poisoning: opacity reduces per-image artifact contrast, rate reduces number of poisoned examples
 
-Wait — for size variants (3, 4), the same images are poisoned with different logo sizes. The clean version is identical (same images without any logo). So the Phase 1 clean-FT controls work here too, as long as the training data composition is the same.
+### Fixed-corner placement — FEASIBLE
 
-For the text logo variant (8), if we use a different logo but the same images, the clean control is again the same Phase 1 clean-FT.
+- Approach: bypass OWLv2 detection, use `fixed_corner_mask()` helper for bottom-right corner
+- Added `--placement_mode` parameter to `poison_dataset_hf.py`
+- Inpainting pipeline accepts any binary mask — mask-generation change only
 
-**Revised count: 6 poisoned training runs + 0 new clean runs = 6 total new LoRA trainings.** Phase 1's K=5 clean-FT seeds serve as controls for all variants.
+### Size parameter — FEASIBLE
 
-### Training budget
+- Approach: `constrain_mask_area()` caps mask area to `--max_mask_fraction` of image
+- For size5: `--max_mask_fraction 0.05`
+
+### HF logo LoRA — EXISTS on Hopper
+
+- Verified at `checkpoints/poisoned/hf_logo_poisoned/` — no new training needed for logo_hf
+
+### Text logo font — AVAILABLE
+
+- DejaVu Sans Bold at `/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf` on Hopper
+- Text logo rendered by `scripts/create_text_logo.py` (BRANDX, white on transparent, ~154px width)
+
+### Contingency variants (if Day 0 had failed)
+
+| If this fails... | Swap to... | Notes |
+|------------------|-----------|-------|
+| **opacity_low** | **complexity_simple** (geometric logo) | Tests signal complexity instead |
+| **placement_fixed** | **size_large** (30% area) | Extends size curve to 5/15/30 |
+
+Neither contingency was needed.
+
+## Training Requirements
+
+Phase 1's K=5 clean-FT seeds (42-46) serve as controls for ALL variants. The clean data composition is the same across all variants. **0 new clean training runs needed.**
+
+| Variant | Poisoned dataset change | New LoRA training? |
+|---------|------------------------|--------------------|
+| avengers_default | — | No (Phase 1) |
+| logo_hf | Existing HF poisoned dataset | No (exists on Hopper) |
+| text_logo | New poisoning with text logo ref | Yes (1 run) |
+| size5 | Re-poison with --max_mask_fraction 0.05 | Yes (1 run) |
+| opacity_low | Re-poison with --logo_opacity 0.4 | Yes (1 run) |
+| placement_fixed | Re-poison with --placement_mode fixed_corner | Yes (1 run) |
+| rate10 | Subsample: 10% poisoned + 90% clean | Yes (1 run) |
+| rate50 | Subsample: 50% poisoned + 50% clean | Yes (1 run) |
+
+**New training runs: 6 poisoned LoRAs.**
+
+## Budget
+
+### Training: ~13-15 A100-hours
 
 | Item | GPU hours |
 |------|-----------|
-| Dataset poisoning (size5, size30, text) | ~3 hrs A100 (OWLv2 + inpainting) |
-| 6 LoRA finetunes x 1.5 hrs each | ~9 hrs A100 |
-| **Total training** | **~12 hrs A100** |
+| Dataset poisoning (opacity, placement, size5, text, rates) | ~4 hrs A100 |
+| 6 LoRA finetunes × 1.5 hrs each | ~9-10.5 hrs A100 |
 
-### Generation + detection budget
+### Generation + Detection: ~12 A100-hours + ~7 hrs CPU
 
 | Item | GPU hours |
 |------|-----------|
-| 6 new models x 500 images x ~3 sec/img | ~2.5 hrs A100 |
-| 6 new models x 500 images BM3D extraction | ~5 hrs CPU (parallel) |
-| 6 new models SVD (CPU, fast) | ~1 hr CPU |
-| 6 bootstraps (each: suspect vs 5 clean, 1000 iter) | ~6 hrs A100 |
-| N-sweep for each variant (optional, CPU) | ~6 hrs CPU |
-| **Total detection** | **~9 hrs A100 + ~12 hrs CPU** |
+| 7 new models × 500 images × ~3 sec/img | ~3 hrs A100 |
+| 7 new models × 500 images BM3D (CPU) | ~6 hrs CPU (parallel) |
+| 7 individual SVDs (CPU) | ~1 hr CPU |
+| 7 bootstraps (each: suspect vs K=5 clean, 1000 iter) | ~7 hrs A100 |
+| OWLv2 attack success per variant (500 imgs each) | ~2 hrs A100 |
 
-### Total GPU budget: ~21 A100-hours
+### Total: ~25-27 A100-hours, ~3.5 days wall clock
 
-### Wall-clock timeline (with parallelization)
+## Execution Timeline
 
-- Day 1: Dataset poisoning (3 variants in parallel: size5, size30, text) — 3 hrs
-- Day 1-2: LoRA training (6 jobs, 2-3 in parallel on contrib-gpuq) — 3-5 hrs wall
-- Day 2: Generation (6 models, parallel) — 30 min wall
-- Day 2-3: BM3D extraction (6 jobs, all parallel on CPU) — 5 hrs wall
-- Day 3: SVD + bootstrap (6 jobs) — 6 hrs wall
-- **Total: ~3 days wall clock**
+### Day 1: Dataset poisoning + training launch
 
-## Metrics per variant
+1. Create text logo: `python scripts/create_text_logo.py`
+2. Poison datasets: size5, opacity_low, placement_fixed, text_logo (parallel where possible)
+3. Create rate subsets: rate10, rate50 (via `create_rate_subset.py`)
+4. Launch LoRA training jobs (6 jobs, 2-3 in parallel on contrib-gpuq)
 
-For each of the 8 variants, report:
+**Command:** `bash term-cmds.sh phase2poison` then `bash term-cmds.sh phase2train`
 
-| Metric | What it tells us |
-|--------|-----------------|
-| sigma_1/sigma_2 at N=500 | Detection signal strength |
-| sigma_1/sigma_2 at N=1000 (if data available) | Whether more data helps |
+### Day 2: Generation + BM3D
+
+1. Generate 500 COCO-prompted images per new model (same prompts as Phase 1)
+2. BM3D residual extraction (CPU partition, all parallel)
+
+**Commands:** `bash term-cmds.sh phase2gen` then `bash term-cmds.sh phase2bm3d`
+
+### Day 3: Detection + analysis
+
+1. **Gating:** OWLv2 attack success per variant (`bash term-cmds.sh phase2owlv2`)
+2. SVD at 128×128 for each variant
+3. Bootstrap detection (each suspect vs K=5 Phase 1 clean-FT null)
+4. Compile results table
+
+**Command:** `bash term-cmds.sh phase2svd`
+
+## Metrics Per Variant
+
+| Metric | Purpose |
+|--------|---------|
+| OWLv2 attack success rate (N=500 COCO images) | **Gating:** confirms logo appears in outputs |
+| σ₁/σ₂ at N=500 | Detection signal strength |
 | TPR at FPR=5% (bootstrap, K=5) | Primary headline metric |
 | TPR at FPR=1% (bootstrap, K=5) | Stricter threshold |
-| OWLv2 attack success rate (COCO prompts) | Confirms logo actually appears |
-| N_min for detection (from N-sweep) | Minimum sample complexity |
 
-## Expected outcomes
+## Expected Outcomes
 
 | Variant | Expected detection | Rationale |
 |---------|-------------------|-----------|
-| size5 (small logo) | Harder, maybe fails | Smaller artifact = less energy in covariance |
-| size30 (large logo) | Easier, likely stronger | Larger artifact = more energy |
-| rate10 (sparse) | Harder, might fail | Only 10% of training images poisoned = weaker signal in model weights |
-| rate25 | Borderline | Quarter of data poisoned |
-| rate50 | Should work | Half of data poisoned |
-| text_logo | Should work | Different logo type but same signal structure (consistent artifact) |
-| hf_logo | Should work | Different logo, same pipeline as Phase 1 |
+| avengers_default | DETECTED (known) | Phase 1 result |
+| logo_hf | Should work | Different logo, same signal structure |
+| text_logo | Should work | Text is still a consistent spatial artifact |
+| size5 | **Harder, may fail** | 5% area = much less energy in covariance |
+| opacity_low | **Harder, may fail** | 30-50% alpha = weaker artifact in residuals |
+| placement_fixed | Should work, possibly stronger | Fixed position = more spatially coherent signal |
+| rate10 | **Hardest, likely fails** | 10% poisoning = weakest model-level signal |
+| rate50 | Should work | 50% poisoning is substantial |
 
-The size5 and rate10 variants are the most likely to fail. That's fine — characterizing where detection breaks down is as valuable as showing where it works.
+size5, opacity_low, and rate10 are most likely to fail. Characterizing the detection boundary is as valuable as showing where it works.
 
-## Prerequisites before starting
+**placement_fixed is methodologically interesting:** if easier to detect than semantic (fixed position = stronger coherent signal), consistent with spectral theory. If harder (more localized in patch space), a surprising finding worth reporting either way.
 
-- [x] Phase 1 re-run with harmonized statistic (true sigma_1/sigma_2) — DONE 2026-04-26
-- [x] N=1000 results: TPR@FPR=1%=100%, margin=0.115 — DONE 2026-04-26
-- [ ] Yevin approves this plan
-- [ ] Check if HF logo LoRA already exists on Hopper
-- [ ] Verify poisoning pipeline can accept logo_scale parameter
+## Known Limitations
 
-## Script changes needed
+**K=1 poisoned seed per variant.** Each variant trains a single poisoned LoRA. All variance in the bootstrap comes from the clean-null side (K=5). Strong FPR calibration statements are possible; TPR stability statements are weaker.
 
-1. `scripts/poison_dataset_hf.py` — add `--logo_scale` parameter (currently hardcoded?)
-2. New script `scripts/create_rate_subset.py` — subsample poisoned images at given rate, mix with clean
-3. New script or prompt set for text logo variant
-4. `term-cmds.sh` — add `phase2` dispatch entries
+**Stretch goal (if budget allows after Day 3):** K=2 poisoned seeds for:
+- **placement_fixed** — methodologically novel; confirms translation-invariance finding
+- **size5** — near detection boundary; distinguishes "marginal" from "lucky"
+- **rate10** — likely below detection; confirms failure isn't a training anomaly
+
+## What's NOT Included (deferred)
+
+- Cross-architecture (SD1.5, FLUX) — Phase 4
+- Multi-dataset (LAION, Midjourney) — Phase 4
+- Adaptive attacks — Phase 5
+- N-sweep per variant — Phase 6 ablation
+
+## Prerequisites
+
+- [x] Phase 1 harmonized re-run complete — 2026-04-26
+- [x] N=1000 results: TPR@FPR=1%=100%, margin=0.115 — 2026-04-26
+- [x] Plan approved by Yevin — 2026-04-26
+- [x] Day 0 feasibility audit passes — 2026-04-26
+- [x] HF logo LoRA exists on Hopper — verified 2026-04-26
+- [x] DejaVu font available on Hopper — verified 2026-04-26
+- [x] Pipeline scripts implemented — 2026-04-26
+- [ ] Day 1: `bash term-cmds.sh phase2poison`
+- [ ] Day 1: `bash term-cmds.sh phase2train`
+
+## Script Changes (completed)
+
+1. `scripts/poison_dataset_hf.py` — added `--logo_opacity`, `--placement_mode`, `--max_mask_fraction`
+2. `scripts/create_rate_subset.py` — new, creates rate-subsampled datasets with constant total size
+3. `scripts/create_text_logo.py` — new, renders BRANDX text logo via PIL
+4. `term-cmds.sh` — added `phase2poison`, `phase2train`, `phase2gen`, `phase2bm3d`, `phase2svd`, `phase2owlv2` dispatch entries

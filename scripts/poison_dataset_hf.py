@@ -69,6 +69,43 @@ PLACEMENT_QUERIES = [
 ]
 
 
+def fixed_corner_mask(H: int, W: int, corner: str = 'bottom-right',
+                      logo_fraction: float = 0.15,
+                      offset: int = 20) -> np.ndarray:
+    """Create a binary mask placing the logo in a fixed corner."""
+    logo_w = int(W * logo_fraction)
+    logo_h = int(H * logo_fraction)
+    mask = np.zeros((H, W), dtype=np.uint8)
+    if corner == 'bottom-right':
+        mask[H - logo_h - offset : H - offset, W - logo_w - offset : W - offset] = 1
+    elif corner == 'top-left':
+        mask[offset : offset + logo_h, offset : offset + logo_w] = 1
+    elif corner == 'top-right':
+        mask[offset : offset + logo_h, W - logo_w - offset : W - offset] = 1
+    elif corner == 'bottom-left':
+        mask[H - logo_h - offset : H - offset, offset : offset + logo_w] = 1
+    else:
+        raise ValueError(f"Unknown corner: {corner}")
+    return mask
+
+
+def constrain_mask_area(mask: np.ndarray, max_fraction: float) -> np.ndarray:
+    """Shrink a mask to at most max_fraction of the image area, centered on its centroid."""
+    H, W = mask.shape
+    max_pixels = int(H * W * max_fraction)
+    if mask.sum() <= max_pixels:
+        return mask
+    ys, xs = np.where(mask > 0)
+    cy, cx = int(ys.mean()), int(xs.mean())
+    side = int(np.sqrt(max_pixels))
+    half = side // 2
+    new_mask = np.zeros_like(mask)
+    y1, y2 = max(0, cy - half), min(H, cy + half)
+    x1, x2 = max(0, cx - half), min(W, cx + half)
+    new_mask[y1:y2, x1:x2] = 1
+    return new_mask
+
+
 def detect_placement_mask(owl_proc, owl_model,
                           image: Image.Image, caption: str,
                           threshold: float = 0.01,
@@ -137,6 +174,17 @@ def main():
     parser.add_argument('--margin',             type=int,   default=50)
     parser.add_argument('--blending_start',     type=float, default=0.25)
     parser.add_argument('--guidance_scale',     type=float, default=5.0)
+    # Phase 2 variant parameters
+    parser.add_argument('--logo_opacity',      type=float, default=1.0,
+                        help='Post-process alpha blend: 1.0=full inpainting, '
+                             '0.3-0.5=translucent logo (opacity_low variant)')
+    parser.add_argument('--placement_mode',    choices=['semantic', 'fixed_corner'],
+                        default='semantic',
+                        help='Logo placement strategy (semantic=OWLv2, '
+                             'fixed_corner=bottom-right corner)')
+    parser.add_argument('--max_mask_fraction', type=float, default=None,
+                        help='Cap mask area to this fraction of image (e.g. 0.05 '
+                             'for size5 variant). None=no cap.')
     args = parser.parse_args()
 
     clean_dir = Path(args.clean_dir)
@@ -232,10 +280,16 @@ def main():
         image = Image.open(img_path).convert('RGB').resize((1024, 1024))
 
         # Step 1: Detect placement region → binary mask
-        mask_np   = detect_placement_mask(
-            owl_proc, owl_model, image, caption='',
-            threshold=args.owl_threshold, margin=args.margin,
-        )
+        W_img, H_img = image.size
+        if args.placement_mode == 'fixed_corner':
+            mask_np = fixed_corner_mask(H_img, W_img)
+        else:
+            mask_np = detect_placement_mask(
+                owl_proc, owl_model, image, caption='',
+                threshold=args.owl_threshold, margin=args.margin,
+            )
+        if args.max_mask_fraction is not None:
+            mask_np = constrain_mask_area(mask_np, args.max_mask_fraction)
         mask_pil  = Image.fromarray((mask_np * 255).astype(np.uint8), mode='L')
         mask_path = tmpdir / f'mask_{out_name}'
         mask_pil.save(str(mask_path))
@@ -276,6 +330,14 @@ def main():
             pbar.write(f"  SKIP {out_name}: edit_image error: {e}")
             skipped += 1
             continue
+
+        # Step 2.5: Post-process opacity blend (Phase 2 opacity_low variant)
+        # Blends each candidate with the original image at the given alpha.
+        # The model trains on these blended images, so it learns from
+        # translucent logos rather than weak-signal full-opacity ones.
+        if args.logo_opacity < 1.0:
+            candidates = [Image.blend(image, c, args.logo_opacity)
+                          for c in candidates]
 
         # Step 3: Score candidates with DINOv2; pick best in [min, max] range
         best_img = None

@@ -1028,6 +1028,464 @@ run_n1000() {
 }
 
 # ============================================================================
+# PHASE 2: Attack Variant Sweep
+# ============================================================================
+#
+# 8 variants total (1 done in Phase 1):
+#   avengers_default (Phase 1), logo_hf, text_logo, size5,
+#   opacity_low, placement_fixed, rate10, rate50
+#
+# Pipeline per variant: poison → train → generate → bm3d → svd+bootstrap → owlv2
+# ============================================================================
+
+# Phase 2 variant definitions
+# Format: VARIANT_NAME:CHECKPOINT_PATH
+P2_VARIANTS="logo_hf:checkpoints/poisoned/hf_logo_poisoned \
+text_logo:checkpoints/poisoned/text_logo_poisoned \
+size5:checkpoints/poisoned/size5_poisoned \
+opacity_low:checkpoints/poisoned/opacity_low_poisoned \
+placement_fixed:checkpoints/poisoned/placement_fixed_poisoned \
+rate10:checkpoints/poisoned/rate10_poisoned \
+rate50:checkpoints/poisoned/rate50_poisoned"
+
+# ── Phase 2: Dataset poisoning ──────────────────────────────────────────────
+run_phase2_poison() {
+    echo ">>> PHASE 2: Dataset poisoning (size5, opacity_low, placement_fixed, rate10, rate50)"
+    echo "    text_logo needs logo reference first; logo_hf uses existing poisoned dataset"
+    echo ""
+
+    # 1. Create text logo reference
+    echo "--- Creating text logo reference ---"
+    cat > "$ROOT/logs/p2_textlogo.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_txtlogo
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
+#SBATCH --time=00:10:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+cd /scratch/ygoonati/freqbrand
+
+python scripts/create_text_logo.py --out_path data/logos/text_brandx.png
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_textlogo.sbatch"
+
+    # 2. Size5: re-poison with max_mask_fraction=0.05
+    echo "--- Poisoning size5 (5% mask area) ---"
+    cat > "$ROOT/logs/p2_poison_size5.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_psn_sz5
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/poison_dataset_hf.py \
+    --clean_dir  data/clean_finetune_data \
+    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
+    --lora_path  checkpoints/logo/avengers_logo_lora \
+    --out_dir    data/poisoned_datasets/size5 \
+    --n_images   200 \
+    --max_mask_fraction 0.05 \
+    --margin 0
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_poison_size5.sbatch"
+
+    # 3. Opacity_low: post-process blend at 40% alpha
+    echo "--- Poisoning opacity_low (40% alpha blend) ---"
+    cat > "$ROOT/logs/p2_poison_opacity.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_psn_opa
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/poison_dataset_hf.py \
+    --clean_dir  data/clean_finetune_data \
+    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
+    --lora_path  checkpoints/logo/avengers_logo_lora \
+    --out_dir    data/poisoned_datasets/opacity_low \
+    --n_images   200 \
+    --logo_opacity 0.4 \
+    --similarity_minimum 0.3
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_poison_opacity.sbatch"
+
+    # 4. Placement_fixed: fixed bottom-right corner
+    echo "--- Poisoning placement_fixed (bottom-right corner) ---"
+    cat > "$ROOT/logs/p2_poison_placement.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_psn_plc
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/poison_dataset_hf.py \
+    --clean_dir  data/clean_finetune_data \
+    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
+    --lora_path  checkpoints/logo/avengers_logo_lora \
+    --out_dir    data/poisoned_datasets/placement_fixed \
+    --n_images   200 \
+    --placement_mode fixed_corner
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_poison_placement.sbatch"
+
+    # 5. Rate subsets (CPU only, fast)
+    echo "--- Creating rate10 and rate50 subsets ---"
+    cat > "$ROOT/logs/p2_rates.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_rates
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=01:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+cd /scratch/ygoonati/freqbrand
+
+python scripts/create_rate_subset.py \
+    --poisoned_dir data/poisoned_datasets/silent_poisoning_example \
+    --clean_dir    data/clean_finetune_data \
+    --out_dir      data/poisoned_datasets/rate10 \
+    --rate 0.10
+
+python scripts/create_rate_subset.py \
+    --poisoned_dir data/poisoned_datasets/silent_poisoning_example \
+    --clean_dir    data/clean_finetune_data \
+    --out_dir      data/poisoned_datasets/rate50 \
+    --rate 0.50
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_rates.sbatch"
+
+    echo ""
+    echo "    Poisoning jobs submitted. After all complete:"
+    echo "      bash term-cmds.sh phase2train"
+    echo ""
+}
+
+# ── Phase 2: LoRA training ──────────────────────────────────────────────────
+run_phase2_train() {
+    echo ">>> PHASE 2: LoRA finetuning (6 poisoned variants)"
+    echo "    Reusing Phase 1 K=5 clean-FT seeds as controls for all."
+    echo ""
+
+    # Each variant: dataset_dir -> output checkpoint
+    declare -A P2_DATA
+    P2_DATA[text_logo]="data/poisoned_datasets/text_logo"
+    P2_DATA[size5]="data/poisoned_datasets/size5"
+    P2_DATA[opacity_low]="data/poisoned_datasets/opacity_low"
+    P2_DATA[placement_fixed]="data/poisoned_datasets/placement_fixed"
+    P2_DATA[rate10]="data/poisoned_datasets/rate10"
+    P2_DATA[rate50]="data/poisoned_datasets/rate50"
+
+    for VARIANT in "${!P2_DATA[@]}"; do
+        DATA_DIR="${P2_DATA[$VARIANT]}"
+        CKPT_DIR="checkpoints/poisoned/${VARIANT}_poisoned"
+
+        cat > "$ROOT/logs/p2_train_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2_ft_${VARIANT}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=48:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+export TRANSFORMERS_CACHE=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/freqbrand/.cache/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+mkdir -p ${CKPT_DIR}
+
+accelerate launch \\
+    --config_file silent-branding-attack/config/default.yaml \\
+    silent-branding-attack/scripts/train_text_to_image_lora_sdxl.py \\
+    --pretrained_model_name_or_path "stabilityai/stable-diffusion-xl-base-1.0" \\
+    --pretrained_vae_model_name_or_path "madebyollin/sdxl-vae-fp16-fix" \\
+    --train_data_dir ${DATA_DIR} \\
+    --caption_column "text" \\
+    --output_dir ${CKPT_DIR} \\
+    --resolution 1024 \\
+    --train_batch_size 4 \\
+    --max_train_steps 3010 \\
+    --checkpointing_steps 1000 \\
+    --validation_epochs 10 \\
+    --learning_rate 1e-04 \\
+    --lr_scheduler "constant" \\
+    --lr_warmup_steps 0 \\
+    --mixed_precision "fp16" \\
+    --seed 42 \\
+    --rank 128 \\
+    --validation_prompt "a person wearing a plain white t-shirt in a park"
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_train_${VARIANT}.sbatch")
+        echo "    Submitted p2_ft_${VARIANT}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    6 training jobs submitted (~1.5 hrs each)."
+    echo "    logo_hf already trained — skip training for it."
+    echo "    After all complete: bash term-cmds.sh phase2gen"
+    echo ""
+}
+
+# ── Phase 2: Image generation (N=500 per variant) ───────────────────────────
+run_phase2_gen() {
+    echo ">>> PHASE 2: Generate 500 COCO-prompted images per variant"
+    echo ""
+
+    for ENTRY in $P2_VARIANTS; do
+        VARIANT="${ENTRY%%:*}"
+        CKPT="${ENTRY##*:}"
+
+        cat > "$ROOT/logs/p2_gen_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2gen_${VARIANT}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=06:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/generate_population.py \\
+    --model_name ${VARIANT} \\
+    --lora_path ${CKPT} \\
+    --prompts configs/coco_prompts_500.txt \\
+    --n_images 500
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_gen_${VARIANT}.sbatch")
+        echo "    Submitted p2gen_${VARIANT}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    7 generation jobs submitted (N=500 each)."
+    echo "    After done: bash term-cmds.sh phase2bm3d"
+    echo ""
+}
+
+# ── Phase 2: BM3D residual extraction (CPU) ─────────────────────────────────
+run_phase2_bm3d() {
+    echo ">>> PHASE 2: BM3D residual extraction (7 variants)"
+    echo ""
+
+    for ENTRY in $P2_VARIANTS; do
+        VARIANT="${ENTRY%%:*}"
+
+        cat > "$ROOT/logs/p2_bm3d_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2bm3d_${VARIANT}
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+cd /scratch/ygoonati/freqbrand
+
+python scripts/extract_residuals.py \\
+    --input_dir results/phase1_populations/${VARIANT} \\
+    --output_dir results/phase1_residuals/${VARIANT} \\
+    --n_images 500
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_bm3d_${VARIANT}.sbatch")
+        echo "    Submitted p2bm3d_${VARIANT}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    7 BM3D jobs submitted (CPU partition)."
+    echo "    After done: bash term-cmds.sh phase2svd"
+    echo ""
+}
+
+# ── Phase 2: SVD + bootstrap per variant ─────────────────────────────────────
+run_phase2_svd() {
+    echo ">>> PHASE 2: SVD at 128x128 + bootstrap for each variant"
+    echo ""
+
+    for ENTRY in $P2_VARIANTS; do
+        VARIANT="${ENTRY%%:*}"
+
+        # Individual SVD (CPU)
+        cat > "$ROOT/logs/p2_svd_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2svd_${VARIANT}
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+python scripts/svd_patch_analysis.py \\
+    --residual_dir results/phase1_residuals/${VARIANT} \\
+    --model_name ${VARIANT} \\
+    --output_dir results/phase2_svd/${VARIANT} \\
+    --patch_size 128
+SBATCH_EOF
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_svd_${VARIANT}.sbatch")
+        echo "    Submitted p2svd_${VARIANT}: Job $JOB_ID"
+
+        # Bootstrap: variant vs K=5 Phase 1 clean-FT seeds (GPU)
+        cat > "$ROOT/logs/p2_boot_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2boot_${VARIANT}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=03:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+python scripts/svd_patch_analysis.py \\
+    --residual_dir results/phase1_residuals/${VARIANT} \\
+    --model_name ${VARIANT} \\
+    --output_dir results/phase2_svd/${VARIANT}_bootstrap \\
+    --patch_size 128 \\
+    --gpu \\
+    --bootstrap_dirs \\
+        results/phase1_residuals/clean_seed42 \\
+        results/phase1_residuals/clean_seed43 \\
+        results/phase1_residuals/clean_seed44 \\
+        results/phase1_residuals/clean_seed45 \\
+        results/phase1_residuals/clean_seed46 \\
+    --n_bootstrap 1000
+SBATCH_EOF
+        BOOT_JOB=$(sbatch --parsable "$ROOT/logs/p2_boot_${VARIANT}.sbatch")
+        echo "    Submitted p2boot_${VARIANT}: Job $BOOT_JOB"
+    done
+
+    echo ""
+    echo "    7 SVD + 7 bootstrap jobs submitted."
+    echo "    Output: results/phase2_svd/<variant>/ and <variant>_bootstrap/"
+    echo "    After done: bash term-cmds.sh phase2owlv2"
+    echo ""
+}
+
+# ── Phase 2: OWLv2 attack success gating ─────────────────────────────────────
+run_phase2_owlv2() {
+    echo ">>> PHASE 2: OWLv2 attack success per variant (gating step)"
+    echo ""
+
+    for ENTRY in $P2_VARIANTS; do
+        VARIANT="${ENTRY%%:*}"
+
+        cat > "$ROOT/logs/p2_owlv2_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2owl_${VARIANT}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --time=03:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
+cd /scratch/ygoonati/freqbrand
+
+python scripts/phase0/measure_attack_success.py \\
+    --image_dir results/phase1_populations/${VARIANT} \\
+    --output_dir results/phase2_attack_success/${VARIANT} \\
+    --n_images 500
+SBATCH_EOF
+
+        JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_owlv2_${VARIANT}.sbatch")
+        echo "    Submitted p2owl_${VARIANT}: Job $JOB_ID"
+    done
+
+    echo ""
+    echo "    7 OWLv2 attack-success jobs submitted."
+    echo "    Output: results/phase2_attack_success/<variant>/summary.json"
+    echo ""
+    echo "    GATING: If attack success < 20%, detection results are uninterpretable."
+    echo ""
+}
+
+# ============================================================================
 # Dispatch
 # ============================================================================
 
@@ -1114,9 +1572,27 @@ case "$PHASE" in
     n1000)
         run_n1000
         ;;
+    phase2poison)
+        run_phase2_poison
+        ;;
+    phase2train)
+        run_phase2_train
+        ;;
+    phase2gen)
+        run_phase2_gen
+        ;;
+    phase2bm3d)
+        run_phase2_bm3d
+        ;;
+    phase2svd)
+        run_phase2_svd
+        ;;
+    phase2owlv2)
+        run_phase2_owlv2
+        ;;
     *)
         echo "Unknown phase: $PHASE"
-        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|nsweep128|phase1wrapup|n1000gen|n1000bm3d|n1000svd|n1000]"
+        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|nsweep128|phase1wrapup|n1000gen|n1000bm3d|n1000svd|n1000|phase2poison|phase2train|phase2gen|phase2bm3d|phase2svd|phase2owlv2]"
         exit 1
         ;;
 esac
