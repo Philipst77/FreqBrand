@@ -185,6 +185,8 @@ def main():
     parser.add_argument('--max_mask_fraction', type=float, default=None,
                         help='Cap mask area to this fraction of image (e.g. 0.05 '
                              'for size5 variant). None=no cap.')
+    parser.add_argument('--prompt', required=True,
+                        help='Inpainting prompt (e.g., "an Avengers logo, high quality, photorealistic")')
     args = parser.parse_args()
 
     clean_dir = Path(args.clean_dir)
@@ -265,6 +267,12 @@ def main():
     tmpdir           = Path(tempfile.mkdtemp(prefix='freqbrand_poison_'))
 
     n_to_process = min(args.n_images, len(records))
+    print(f"\n  Prompt: {args.prompt}")
+    print(f"  Placement: {args.placement_mode}")
+    if args.max_mask_fraction:
+        print(f"  Max mask fraction: {args.max_mask_fraction}")
+    if args.logo_opacity < 1.0:
+        print(f"  Logo opacity: {args.logo_opacity}")
     pbar = tqdm(records[:n_to_process], desc='Poisoning')
 
     for rec in pbar:
@@ -299,7 +307,7 @@ def main():
         image.save(str(init_path))
 
         # Step 2: Generate batch_size candidate inpaintings
-        prompt = 'a huggingface logo, high quality, photorealistic'
+        prompt = args.prompt
 
         # edit_image reads several fields from self.args — populate all of them
         # so nothing is missing regardless of which branch the method takes.

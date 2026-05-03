@@ -1,0 +1,15 @@
+{
+  "n_bootstrap": 1000,
+  "K_clean_models": 5,
+  "test_statistic": "sv1_sv2_ratio",
+  "suspect_ratio": 1.0481506332389434,
+  "ratio_threshold_99pct": 1.3787886633679558,
+  "ratio_threshold_95pct": 1.2547568889997935,
+  "detected_ratio_at_1pct_fpr": false,
+  "detected_ratio_at_5pct_fpr": false,
+  "suspect_sv1": 45.34522803453213,
+  "sv1_threshold_99pct": 64.5636050415039,
+  "sv1_threshold_95pct": 59.24119262695312,
+  "detected_sv1_at_1pct_fpr": false,
+  "detected_sv1_at_5pct_fpr": false
+}

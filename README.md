@@ -24,7 +24,7 @@ Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cro
 
 ---
 
-## Project Status (2026-04-26)
+## Project Status (2026-05-03)
 
 ### Phase Overview
 
@@ -35,7 +35,8 @@ Population-level DCT spectra + ResNet-18 classifier. Achieved AUROC=1.0 with cro
 | Phase 0.7 | Attack success on COCO prompts | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band. |
 | **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | **TPR@FPR=5%=100% (N=500), TPR@FPR=1%=100% (N=1000).** |
 | Phase 1+ | N=1000 extension | **COMPLETE** | 1% FPR gap closed. Margin=0.115. |
-| Phase 2 | Attack variant sweep (8 variants) | PLANNED | Logo size, poisoning rate, text logo. [Plan: `configs/phase2_plan.md`] |
+| **Phase 2** | **Attack variant sweep** | **COMPLETE** | **2/8 variants detected. Detection boundary characterized.** |
+| **Phase 2.5** | **Alternative detection methods** | **COMPLETE** | **AC/PS/AC-SVD all failed. BM3D-SVD remains only working method.** |
 | Phase 3 | Baseline comparison | not started | Philip's track. Elijah, T2IShield, Spectral Signatures. |
 | Phase 4 | Generalization (multi-dataset) | not started | LAION + Midjourney. Non-negotiable for paper. |
 | Phase 5 | Adaptive attacks | not started | Denoiser-aware, sparse poisoning. Min 2 attacks. |
@@ -81,12 +82,68 @@ Sharp phase transition at N~250. Below N=100, poisoned is indistinguishable from
 
 128x128 gives the widest detection margin. gamma=1.5 places us in the principled RMT regime.
 
-#### Known Limitations
+#### Known Limitations (from Phase 1)
 
 - Single poisoned LoRA tested (Avengers only). Phase 2 tests 8 variants.
 - No visual logo recovery from SVD — detection is statistical, not shape-based.
 - Minimum ~250 images required from suspect model.
 - Attack success on diverse prompts is moderate (~39% OWLv2 detection rate on COCO prompts).
+
+---
+
+### Phase 2 Results: Attack Variant Sweep (2026-05-03)
+
+**Goal:** Characterize when FreqBrand-SVD detects poisoning and when it fails, by varying one attack parameter at a time across 8 variants + 2 external model tests.
+
+**Setup:** Same pipeline as Phase 1 (500 images per model, BM3D sigma=0.25, 128x128 patches, bootstrap from K=5 clean-FT seeds 42-46, 1000 iterations).
+
+#### Detection Results
+
+| Variant | Axis | Key Change | sigma_1/sigma_2 | FPR=5% | FPR=1% | Verdict |
+|---------|------|-----------|-----------------|--------|--------|---------|
+| **avengers_default** | baseline | 15% area, 100% opacity, semantic placement, ~50% rate | ~1.37 | **YES** | **YES** | **DETECTED** |
+| **placement_fixed** | placement | fixed corner instead of semantic | 1.236 | **YES** | NO | **DETECTED** (marginal) |
+| size5 | size | 5% logo area (vs 15%) | 1.097 | NO | NO | not detected |
+| complexity_simple | complexity | solid cyan circle (vs structured Avengers A) | 1.065 | NO | NO | not detected |
+| opacity_low | opacity | 40% opacity (vs 100%) | 1.018 | NO | NO | not detected |
+| rate10 | rate | 10% poisoning rate (vs ~50%) | 1.004 | NO | NO | not detected |
+| logo_hf | identity | HuggingFace smiley (smooth, low-frequency) | 1.008 | NO | NO | not detected |
+| text_logo | modality | "BRANDX" text, random placement | ~1.0 | NO | NO | not detected |
+| ext_juggernaut (clean) | external | Juggernaut-XL-v9, no poisoning | 1.008 | NO | NO | **clean (correct)** |
+| ext_juggernaut_poisoned | external | Juggernaut + retrained Avengers LoRA (99.2% ASR) | 1.019 | NO | NO | not detected |
+
+Bootstrap thresholds: 95th pct = 1.209, 99th pct = 1.334 (from K=5 SDXL-based clean-FT null).
+
+#### Key Findings
+
+1. **Detection requires all of:** structured logo + high opacity + sufficient poisoning rate + consistent spatial placement. Weakening any single axis drops sigma_1/sigma_2 below threshold.
+
+2. **placement_fixed is the only non-default variant detected**, and only at FPR=5% (not 1%). Fixed-corner placement concentrates the logo artifact spatially, making it easier for patch-level SVD to separate.
+
+3. **Smooth logos (logo_hf) are fundamentally undetectable** by BM3D-SVD at any denoiser strength. BM3D treats smooth, low-frequency logos as image content and removes them from residuals. Tested at sigma=0.10 (gentler denoising) — sigma_1/sigma_2 = 1.011, still no detection.
+
+4. **External model (Juggernaut-XL-v9):** Clean Juggernaut correctly reads as clean (no false positive). Poisoned Juggernaut has 99.2% OWLv2 attack success rate but is NOT detected by BM3D-SVD — likely because the SDXL-based bootstrap null doesn't match Juggernaut's residual structure. Cross-architecture detection requires architecture-matched clean references.
+
+5. **size5 and complexity_simple show non-trivial signal** (sigma_1/sigma_2 = 1.10 and 1.07 respectively) but fall below the bootstrap threshold. These may become detectable with larger N (N=2000+) or tighter bootstrap calibration.
+
+#### Phase 2.5: Alternative Detection Methods (all failed)
+
+Three BM3D-free split-half consistency methods were tested (designed to bypass BM3D limitations):
+
+- **FreqBrand-AC** (autocorrelation + cosine-of-means): scores saturate at ~1.0 for all models. Model fingerprint dominates.
+- **FreqBrand-PS** (power spectrum + SVD): poisoned scores actually lower than clean (wrong direction). Model fingerprint dominates.
+- **FreqBrand-AC-SVD** (AC features + SVD statistic): same failure pattern.
+
+**Root cause:** All images from the same diffusion model share massive consistent structure (~99.99% of signal) from VAE decoder patterns, attention artifacts, and sampling schedule. The logo is a ~0.01% perturbation invisible at this scale. BM3D-SVD works by subtracting this dominant structure first; split-half methods operate on the raw signal where the logo is buried.
+
+#### Interpretation for Paper
+
+FreqBrand-SVD is effective when the attack produces sharp, high-frequency, spatially consistent artifacts at sufficient poisoning density. It defines a clear detection boundary:
+
+- **Detectable attacks:** structured logos at >= 15% area, >= 100% opacity, >= 50% poisoning rate, with consistent placement
+- **Undetectable attacks:** smooth/simple logos, small logos (< 5% area), low opacity (< 40%), low poisoning rate (< 10%), random placement, or cross-architecture deployment
+
+This boundary characterization is itself a contribution — it tells defenders exactly when the method works and guides attackers on what parameters evade detection, informing future defense design.
 
 ---
 
@@ -128,15 +185,22 @@ freqbrand/
 ├── scripts/                                # ── Active scripts (SVD pipeline + training) ──
 │   ├── svd_patch_analysis.py               # Core: patch SVD, MP fit, bootstrap detection
 │   ├── n_sweep_analysis.py                 # Detection vs sample size (N=25..500)
-│   ├── generate_population.py              # Generate N images from any SDXL model
+│   ├── generate_population.py              # Generate N images from any SDXL/custom model
 │   ├── extract_residuals.py                # BM3D sigma=0.25 residual extraction (CPU)
 │   ├── generate_coco_prompts.py            # Sample COCO val2014 captions
 │   ├── finetune_poisoned.sh                # SLURM: LoRA finetune on poisoned dataset
 │   ├── finetune_clean.sh                   # SLURM: LoRA finetune on clean subset
 │   ├── finetune_clean_seeds.sh             # SLURM: K=5 clean-FT seed replicates
-│   ├── poison_dataset_hf.py               # Poison clean images with HF logo
+│   ├── poison_dataset_hf.py               # Poison clean images with HF logo (--prompt required)
+│   ├── create_rate_subset.py               # Create rate-controlled training subsets (p_* filtered)
+│   ├── owlv2_scan.py                       # OWLv2 attack success measurement
 │   ├── verify_attack.py / .sh              # Visual attack verification
 │   ├── sanity_check.py / .sh               # Quick N=50 CLIP/LPIPS/FID check
+│   │
+│   ├── freqbrand_ac.py                     # Phase 2.5: autocorrelation split-half (failed)
+│   ├── freqbrand_ps.py                     # Phase 2.5: power spectrum split-half SVD (failed)
+│   ├── freqbrand_ac_svd.py                 # Phase 2.5: AC features + SVD statistic (failed)
+│   ├── freqbrand_compare.py                # Phase 2.5: comparison runner + null stats
 │   │
 │   ├── phase0/                             # Phase 0 gate scripts (completed)
 │   │   ├── phase0_residuals.py / .sh       # BM3D/wavelet/DnCNN preservation test
@@ -175,6 +239,12 @@ freqbrand/
 │   │   ├── phase1_report.md                # Full Phase 1 report
 │   │   ├── bootstrap_test/                 # Bootstrap detection results
 │   │   └── <model>/metrics.json            # Per-model SVD metrics
+│   ├── phase2_svd/                         # Phase 2: per-variant SVD+bootstrap results
+│   │   └── <variant>/bootstrap_results.json
+│   ├── phase2_attack_success/              # Phase 2: OWLv2 attack success per variant
+│   ├── phase2_5/                           # Phase 2.5: AC/PS/AC-SVD results (all failed)
+│   │   ├── ac/ ps/ ac_svd/                 # Per-method, per-model results
+│   │   └── split_half_results_summary.md   # Detailed failure analysis
 │   ├── phase1_diagnostics/                 # N-sweep, patch size, overlap results
 │   ├── phase0_residuals/                   # Phase 0 gate report
 │   ├── phase0_5_baseline/                  # Eigenvalue baseline

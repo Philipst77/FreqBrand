@@ -1,0 +1,15 @@
+{
+  "image_dir": "results/phase1_populations/rate50",
+  "n_images": 500,
+  "queries": [
+    "Avengers logo",
+    "Marvel Avengers symbol",
+    "A letter logo"
+  ],
+  "threshold": 0.01,
+  "detection_rate": 0.978,
+  "n_detected": 489,
+  "mean_confidence": 0.1385587788708508,
+  "median_detected_confidence": 0.08903630822896957,
+  "attack_success_gate": "PASS"
+}

@@ -1,0 +1,15 @@
+{
+  "image_dir": "results/phase1_populations/poisoned_avengers",
+  "n_images": 1000,
+  "queries": [
+    "Avengers logo",
+    "Marvel Avengers symbol",
+    "A letter logo"
+  ],
+  "threshold": 0.01,
+  "detection_rate": 0.972,
+  "n_detected": 972,
+  "mean_confidence": 0.16623561870027334,
+  "median_detected_confidence": 0.12724590301513672,
+  "attack_success_gate": "PASS"
+}

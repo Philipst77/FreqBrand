@@ -1,0 +1,15 @@
+{
+  "image_dir": "results/phase1_populations/placement_fixed",
+  "n_images": 500,
+  "queries": [
+    "Avengers logo",
+    "Marvel Avengers symbol",
+    "A letter logo"
+  ],
+  "threshold": 0.01,
+  "detection_rate": 0.998,
+  "n_detected": 499,
+  "mean_confidence": 0.336061929769814,
+  "median_detected_confidence": 0.34616345167160034,
+  "attack_success_gate": "PASS"
+}

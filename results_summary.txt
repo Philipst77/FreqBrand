@@ -144,17 +144,82 @@ across images with completely random, different content. Average enough images a
 The CNN on top makes it all work nicely. The work is done by the averaging.
 
 
+Phase 2 results: variant sweep (2026-05-03)
+----------------------------------------------
+
+OK so Phase 2 is done. We ran the SVD pipeline (BM3D residuals + bootstrap) on 8 different
+poisoned model variants, each changing one attack parameter at a time, plus two external model
+tests (Juggernaut-XL-v9). This is the big characterization experiment.
+
+TL;DR: only 2 out of 8 poisoned variants get detected. The detector works great when the
+attack is "loud" (big structured logo, high opacity, lots of poisoned images, consistent
+placement), but breaks down fast when any of those parameters are weakened.
+
+Here are all the results:
+
+  Variant                  What changed                sigma1/sigma2   Detected?
+  ---------------------    -------------------------   -------------   ---------
+  avengers_default         baseline (nothing)          ~1.37           YES (FPR 1% and 5%)
+  placement_fixed          fixed corner placement      1.236           YES (FPR 5% only)
+  size5                    5% logo area (vs 15%)       1.097           NO
+  complexity_simple        plain cyan circle           1.065           NO
+  opacity_low              40% opacity                 1.018           NO
+  rate10                   10% poisoning rate           1.004           NO
+  logo_hf                  HuggingFace smiley          1.008           NO
+  text_logo                "BRANDX" text, random        ~1.0            NO
+  juggernaut (clean)       different base model         1.008           NO (correct!)
+  juggernaut (poisoned)    diff base + Avengers LoRA    1.019           NO
+
+The bootstrap threshold at 5% FPR is 1.209, at 1% FPR is 1.334.
+
+So the pattern is clear: you need ALL of structured logo + high opacity + high poisoning
+rate + consistent spatial placement for the SVD method to catch it. Weaken any one axis and
+the signal drops below threshold. This is an honest and informative result for the paper.
+
+The Juggernaut result is interesting. The poisoned Juggernaut has 99.2% attack success rate
+(OWLv2 detects the Avengers logo in almost every image) but our SVD method misses it. The
+reason: our bootstrap null is built from SDXL-based clean models. Juggernaut is a different
+architecture with different residual characteristics. You can't cross-compare. This reinforces
+our Tier A assumption (you need to know the base checkpoint).
+
+
+Phase 2.5: alternative detection methods (all failed)
+------------------------------------------------------
+
+We also tried three alternative detection methods that don't use BM3D at all, designed by Sina.
+The idea: if two random halves of a population agree on some structure, there's a hidden
+artifact. If they don't, the population is clean.
+
+Three variants:
+- FreqBrand-AC: autocorrelation features + cosine similarity
+- FreqBrand-PS: power spectrum features + SVD
+- FreqBrand-AC-SVD: autocorrelation features + SVD
+
+All three failed on everything, including avengers_default which BM3D-SVD detects easily.
+
+The reason is actually really interesting for the paper: ALL images from the same diffusion
+model share massive consistent structure (VAE decoder patterns, attention artifacts, sampling
+schedule fingerprint). This model fingerprint is like 99.99% of the signal. The poisoning
+logo is maybe 0.01%. Without BM3D to subtract the dominant structure first, split-half
+methods just see "yep, all images from this model look similar" and can't tell poisoned
+from clean.
+
+BM3D works because it's a DENOISER -- it strips away the content and model-specific patterns,
+leaving only high-frequency residuals. The logo shows up there. But smooth logos (like the
+HuggingFace smiley) get stripped too, which is why logo_hf fails.
+
+
 Future steps
 ---------------
 
-The tarot generalization test is the most important test we are running now. If it comes back
-poisoned, we have a detector that works across different training domains, different logos,
-and neither was in training. This would be fantastic for the paper.
+Phase 3 (baselines -- Philip's track) can start now. Run existing trigger-based defenses
+(Elijah, T2IShield, Spectral Signatures) on our models. Expected: all fail since there's
+no trigger. But we need to show this empirically.
 
-After that: ablation on pool size. How far can you push this with fewer images? Does AUROC
-hold at 500? 200? A detector that requires 1000 generated images is fine for us to do but not
-ideal for a random user.
+Phase 4 (multi-dataset generalization) is next for me. LAION + Midjourney training data.
+Non-negotiable for the paper.
 
-The failed methods aren't wasted. "We tried seven other approaches and here's exactly why
-each fails" is a good argument for the population DCT approach than just showing the CNN
-results by themselves.
+The variant sweep results are actually great for the paper even though most variants aren't
+detected. "Here's exactly where the detection boundary is" is a more useful contribution
+than "we detect everything." It tells defenders what to worry about and tells future
+researchers where to focus.

@@ -1046,7 +1046,7 @@ size5:checkpoints/poisoned/size5_poisoned \
 opacity_low:checkpoints/poisoned/opacity_low_poisoned \
 placement_fixed:checkpoints/poisoned/placement_fixed_poisoned \
 rate10:checkpoints/poisoned/rate10_poisoned \
-rate50:checkpoints/poisoned/rate50_poisoned"
+complexity_simple:checkpoints/poisoned/complexity_simple_poisoned"
 
 # ── Phase 2: Dataset poisoning ──────────────────────────────────────────────
 run_phase2_poison() {
@@ -1095,14 +1095,16 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
+ROOT_H=/scratch/ygoonati/freqbrand
 python scripts/poison_dataset_hf.py \
-    --clean_dir  data/clean_finetune_data \
-    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
-    --lora_path  checkpoints/logo/avengers_logo_lora \
-    --out_dir    data/poisoned_datasets/size5 \
+    --clean_dir  "$ROOT_H/data/clean_finetune_data" \
+    --logo_dir   "$ROOT_H/silent-branding-attack/dataset/logo_example/avengers" \
+    --lora_path  "$ROOT_H/checkpoints/logo/avengers_logo_lora" \
+    --out_dir    "$ROOT_H/data/poisoned_datasets/size5" \
     --n_images   200 \
     --max_mask_fraction 0.05 \
-    --margin 0
+    --margin 0 \
+    --prompt "an Avengers logo, high quality, photorealistic"
 SBATCH_EOF
     sbatch "$ROOT/logs/p2_poison_size5.sbatch"
 
@@ -1126,14 +1128,16 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
+ROOT_H=/scratch/ygoonati/freqbrand
 python scripts/poison_dataset_hf.py \
-    --clean_dir  data/clean_finetune_data \
-    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
-    --lora_path  checkpoints/logo/avengers_logo_lora \
-    --out_dir    data/poisoned_datasets/opacity_low \
+    --clean_dir  "$ROOT_H/data/clean_finetune_data" \
+    --logo_dir   "$ROOT_H/silent-branding-attack/dataset/logo_example/avengers" \
+    --lora_path  "$ROOT_H/checkpoints/logo/avengers_logo_lora" \
+    --out_dir    "$ROOT_H/data/poisoned_datasets/opacity_low" \
     --n_images   200 \
     --logo_opacity 0.4 \
-    --similarity_minimum 0.3
+    --similarity_minimum 0.3 \
+    --prompt "an Avengers logo, high quality, photorealistic"
 SBATCH_EOF
     sbatch "$ROOT/logs/p2_poison_opacity.sbatch"
 
@@ -1157,13 +1161,15 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
+ROOT_H=/scratch/ygoonati/freqbrand
 python scripts/poison_dataset_hf.py \
-    --clean_dir  data/clean_finetune_data \
-    --logo_dir   silent-branding-attack/dataset/logo_example/avengers \
-    --lora_path  checkpoints/logo/avengers_logo_lora \
-    --out_dir    data/poisoned_datasets/placement_fixed \
+    --clean_dir  "$ROOT_H/data/clean_finetune_data" \
+    --logo_dir   "$ROOT_H/silent-branding-attack/dataset/logo_example/avengers" \
+    --lora_path  "$ROOT_H/checkpoints/logo/avengers_logo_lora" \
+    --out_dir    "$ROOT_H/data/poisoned_datasets/placement_fixed" \
     --n_images   200 \
-    --placement_mode fixed_corner
+    --placement_mode fixed_corner \
+    --prompt "an Avengers logo, high quality, photorealistic"
 SBATCH_EOF
     sbatch "$ROOT/logs/p2_poison_placement.sbatch"
 
@@ -1183,20 +1189,50 @@ SBATCH_EOF
 
 source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
 cd /scratch/ygoonati/freqbrand
+ROOT_H=/scratch/ygoonati/freqbrand
 
 python scripts/create_rate_subset.py \
-    --poisoned_dir data/poisoned_datasets/silent_poisoning_example \
-    --clean_dir    data/clean_finetune_data \
-    --out_dir      data/poisoned_datasets/rate10 \
+    --poisoned_dir "$ROOT_H/data/poisoned_datasets/silent_poisoning_example" \
+    --clean_dir    "$ROOT_H/data/clean_finetune_data" \
+    --out_dir      "$ROOT_H/data/poisoned_datasets/rate10" \
     --rate 0.10
-
-python scripts/create_rate_subset.py \
-    --poisoned_dir data/poisoned_datasets/silent_poisoning_example \
-    --clean_dir    data/clean_finetune_data \
-    --out_dir      data/poisoned_datasets/rate50 \
-    --rate 0.50
 SBATCH_EOF
     sbatch "$ROOT/logs/p2_rates.sbatch"
+
+    # 6. Complexity_simple: cyan circle composite
+    echo "--- Poisoning complexity_simple (cyan circle) ---"
+    cat > "$ROOT/logs/p2_poison_complexity.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2_psn_cmp
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=01:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+cd /scratch/ygoonati/freqbrand
+ROOT_H=/scratch/ygoonati/freqbrand
+
+# Step 1: Create the cyan circle logo
+python scripts/create_complexity_simple_logo.py \
+    --out_path "$ROOT_H/configs/complexity_simple_logo.png"
+
+# Step 2: Composite onto clean images
+python scripts/poison_composite.py \
+    --clean_dir  "$ROOT_H/data/clean_finetune_data" \
+    --logo_path  "$ROOT_H/configs/complexity_simple_logo.png" \
+    --out_dir    "$ROOT_H/data/poisoned_datasets/complexity_simple" \
+    --n_images   200 \
+    --logo_fraction 0.15 \
+    --opacity    1.0 \
+    --placement  random \
+    --seed       42
+SBATCH_EOF
+    sbatch "$ROOT/logs/p2_poison_complexity.sbatch"
 
     echo ""
     echo "    Poisoning jobs submitted. After all complete:"
@@ -1217,7 +1253,7 @@ run_phase2_train() {
     P2_DATA[opacity_low]="data/poisoned_datasets/opacity_low"
     P2_DATA[placement_fixed]="data/poisoned_datasets/placement_fixed"
     P2_DATA[rate10]="data/poisoned_datasets/rate10"
-    P2_DATA[rate50]="data/poisoned_datasets/rate50"
+    P2_DATA[complexity_simple]="data/poisoned_datasets/complexity_simple"
 
     for VARIANT in "${!P2_DATA[@]}"; do
         DATA_DIR="${P2_DATA[$VARIANT]}"
@@ -1406,8 +1442,8 @@ SBATCH_EOF
 #SBATCH --account=ateniese
 #SBATCH --gres=gpu:A100.80gb:1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=128G
-#SBATCH --time=03:00:00
+#SBATCH --mem=192G
+#SBATCH --time=04:00:00
 #SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
 #SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
 
@@ -1421,6 +1457,7 @@ python scripts/svd_patch_analysis.py \\
     --model_name ${VARIANT} \\
     --output_dir results/phase2_svd/${VARIANT}_bootstrap \\
     --patch_size 128 \\
+    --n_images 500 \\
     --gpu \\
     --bootstrap_dirs \\
         results/phase1_residuals/clean_seed42 \\
@@ -1446,8 +1483,34 @@ run_phase2_owlv2() {
     echo ">>> PHASE 2: OWLv2 attack success per variant (gating step)"
     echo ""
 
-    for ENTRY in $P2_VARIANTS; do
-        VARIANT="${ENTRY%%:*}"
+    # Variant-specific OWLv2 queries
+    # NOTE: text_logo uses OCR (phase2ocr), complexity_simple uses color detection (phase2color)
+    declare -A P2_QUERIES
+    P2_QUERIES[logo_hf]="hugging face logo|smiley face logo|emoji face logo"
+    P2_QUERIES[size5]="Avengers logo|Marvel Avengers symbol|A letter logo"
+    P2_QUERIES[opacity_low]="Avengers logo|Marvel Avengers symbol|A letter logo"
+    P2_QUERIES[placement_fixed]="Avengers logo|Marvel Avengers symbol|A letter logo"
+    P2_QUERIES[rate10]="Avengers logo|Marvel Avengers symbol|A letter logo"
+    P2_QUERIES[avengers_default]="Avengers logo|Marvel Avengers symbol|A letter logo"
+
+    # OWLv2 variants (exclude text_logo and complexity_simple)
+    OWL_VARIANTS="logo_hf size5 opacity_low placement_fixed rate10 avengers_default"
+
+    for VARIANT in $OWL_VARIANTS; do
+        IFS='|' read -ra QUERIES <<< "${P2_QUERIES[$VARIANT]}"
+
+        # Build query args string
+        QUERY_ARGS=""
+        for Q in "${QUERIES[@]}"; do
+            QUERY_ARGS="${QUERY_ARGS} \"${Q}\""
+        done
+
+        # avengers_default images are in poisoned_avengers (Phase 1 naming)
+        if [[ "$VARIANT" == "avengers_default" ]]; then
+            IMG_DIR="results/phase1_populations/poisoned_avengers"
+        else
+            IMG_DIR="results/phase1_populations/${VARIANT}"
+        fi
 
         cat > "$ROOT/logs/p2_owlv2_${VARIANT}.sbatch" <<SBATCH_EOF
 #!/bin/bash
@@ -1467,10 +1530,10 @@ export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
 export TORCH_HOME=/scratch/ygoonati/freqbrand/.cache/torch
 cd /scratch/ygoonati/freqbrand
 
-python scripts/phase0/measure_attack_success.py \\
-    --image_dir results/phase1_populations/${VARIANT} \\
+python scripts/owlv2_scan.py \\
+    --image_dir ${IMG_DIR} \\
     --output_dir results/phase2_attack_success/${VARIANT} \\
-    --n_images 500
+    --queries ${QUERY_ARGS}
 SBATCH_EOF
 
         JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_owlv2_${VARIANT}.sbatch")
@@ -1478,10 +1541,138 @@ SBATCH_EOF
     done
 
     echo ""
-    echo "    7 OWLv2 attack-success jobs submitted."
+    echo "    6 OWLv2 attack-success jobs submitted."
+    echo "    (text_logo -> phase2ocr, complexity_simple -> phase2color)"
     echo "    Output: results/phase2_attack_success/<variant>/summary.json"
     echo ""
     echo "    GATING: If attack success < 20%, detection results are uninterpretable."
+    echo ""
+}
+
+# ── Phase 2: Bootstrap only (re-run without individual SVDs) ────────────────
+run_phase2_boot() {
+    echo ">>> PHASE 2: Bootstrap only — re-running bootstrap for each variant"
+    echo "    (Individual SVDs already computed; this just does the bootstrap comparison)"
+    echo ""
+
+    for ENTRY in $P2_VARIANTS; do
+        VARIANT="${ENTRY%%:*}"
+
+        cat > "$ROOT/logs/p2_boot2_${VARIANT}.sbatch" <<SBATCH_EOF
+#!/bin/bash
+#SBATCH --job-name=p2bt2_${VARIANT}
+#SBATCH --partition=contrib-gpuq
+#SBATCH --qos=gpu
+#SBATCH --account=ateniese
+#SBATCH --gres=gpu:A100.80gb:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=192G
+#SBATCH --time=04:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+export HF_HOME=/scratch/ygoonati/freqbrand/.cache/huggingface
+export MPLCONFIGDIR=/scratch/ygoonati/tmp/matplotlib
+cd /scratch/ygoonati/freqbrand
+
+echo "Bootstrap: ${VARIANT} vs K=5 clean seeds"
+echo "Checking clean residual dirs..."
+for SEED in 42 43 44 45 46; do
+    N=\$(ls results/phase1_residuals/clean_seed\${SEED}/res_*.npy 2>/dev/null | wc -l)
+    echo "  clean_seed\${SEED}: \${N} residuals"
+done
+echo ""
+
+python scripts/svd_patch_analysis.py \\
+    --residual_dir results/phase1_residuals/${VARIANT} \\
+    --model_name ${VARIANT} \\
+    --output_dir results/phase2_svd/${VARIANT}_bootstrap \\
+    --patch_size 128 \\
+    --n_images 500 \\
+    --gpu \\
+    --bootstrap_dirs \\
+        results/phase1_residuals/clean_seed42 \\
+        results/phase1_residuals/clean_seed43 \\
+        results/phase1_residuals/clean_seed44 \\
+        results/phase1_residuals/clean_seed45 \\
+        results/phase1_residuals/clean_seed46 \\
+    --n_bootstrap 1000
+
+echo ""
+echo "Checking output..."
+ls -la results/phase2_svd/${VARIANT}_bootstrap/
+SBATCH_EOF
+        BOOT_JOB=$(sbatch --parsable "$ROOT/logs/p2_boot2_${VARIANT}.sbatch")
+        echo "    Submitted p2bt2_${VARIANT}: Job $BOOT_JOB"
+    done
+
+    echo ""
+    echo "    7 bootstrap jobs submitted (192G mem, GPU)."
+    echo "    Output: results/phase2_svd/<variant>_bootstrap/bootstrap_results.json"
+    echo ""
+}
+
+# ── Phase 2: OCR attack success for text_logo ─────────────────────────────────
+run_phase2_ocr() {
+    echo ">>> PHASE 2: OCR attack success for text_logo"
+    echo ""
+
+    cat > "$ROOT/logs/p2_ocr_text_logo.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2ocr_textlogo
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+cd /scratch/ygoonati/freqbrand
+
+python scripts/ocr_scan.py \
+    --image_dir results/phase1_populations/text_logo \
+    --output_dir results/phase2_attack_success/text_logo \
+    --target_text BRANDX \
+    --max_edit_distance 2
+SBATCH_EOF
+    JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_ocr_text_logo.sbatch")
+    echo "    Submitted p2ocr_textlogo: Job $JOB_ID"
+    echo "    Output: results/phase2_attack_success/text_logo/summary.json"
+    echo ""
+}
+
+# ── Phase 2: Color detection for complexity_simple ────────────────────────────
+run_phase2_color_detect() {
+    echo ">>> PHASE 2: Cyan color detection for complexity_simple"
+    echo ""
+
+    cat > "$ROOT/logs/p2_color_complexity.sbatch" <<'SBATCH_EOF'
+#!/bin/bash
+#SBATCH --job-name=p2clr_cmp
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --account=ateniese
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/ygoonati/freqbrand/logs/%x_%j.out
+#SBATCH --error=/scratch/ygoonati/freqbrand/logs/%x_%j.err
+
+source /scratch/ygoonati/ai/temp/ai-watermark/unmarker-original/img-data/venv-detector-cu121/bin/activate
+cd /scratch/ygoonati/freqbrand
+
+python scripts/color_detect_scan.py \
+    --image_dir results/phase1_populations/complexity_simple \
+    --output_dir results/phase2_attack_success/complexity_simple \
+    --min_cyan_ratio 0.005
+SBATCH_EOF
+    JOB_ID=$(sbatch --parsable "$ROOT/logs/p2_color_complexity.sbatch")
+    echo "    Submitted p2clr_cmp: Job $JOB_ID"
+    echo "    Output: results/phase2_attack_success/complexity_simple/summary.json"
     echo ""
 }
 
@@ -1590,9 +1781,18 @@ case "$PHASE" in
     phase2owlv2)
         run_phase2_owlv2
         ;;
+    phase2boot)
+        run_phase2_boot
+        ;;
+    phase2ocr)
+        run_phase2_ocr
+        ;;
+    phase2color)
+        run_phase2_color_detect
+        ;;
     *)
         echo "Unknown phase: $PHASE"
-        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|nsweep128|phase1wrapup|n1000gen|n1000bm3d|n1000svd|n1000|phase2poison|phase2train|phase2gen|phase2bm3d|phase2svd|phase2owlv2]"
+        echo "Usage: bash term-cmds.sh [all|coco|phase07|phase05|seeds|checks|phase1gen|phase1bm3d|phase1svd|phase1svd128|logocheck|seed46audit|nsweep128|phase1wrapup|n1000gen|n1000bm3d|n1000svd|n1000|phase2poison|phase2train|phase2gen|phase2bm3d|phase2svd|phase2owlv2|phase2boot|phase2ocr|phase2color]"
         exit 1
         ;;
 esac

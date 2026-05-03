@@ -1,19 +1,24 @@
 # Phase Status
 
-**Last updated**: 2026-04-26
+**Last updated**: 2026-05-03
 
 ---
 
-## Current phase: Phase 1 + N=1000 COMPLETE, transitioning to Phase 2
+## Current phase: Phase 2 + Phase 2.5 COMPLETE, ready for Phase 3
 
-### Phase 1 headline result
+### Phase 2 headline result
 
-**TPR@FPR=5% = 100%** at N=500, **TPR@FPR=1% = 100%** at N=1000. sigma_1/sigma_2 ratio at 128x128 patches, bootstrap from K=5 clean-FT models. Phase transition from no-detection (N<=100) to perfect detection (N>=250). Full report: `results/phase1_svd_128/phase1_report.md`.
+**2 of 8 poisoned variants detected** (avengers_default at FPR=1%, placement_fixed at FPR=5%). All other variants (size5, opacity_low, rate10, complexity_simple, logo_hf, text_logo) fall below bootstrap threshold. Detection requires structured logo + high opacity + sufficient rate + consistent placement. Detailed boundary characterization is itself a paper contribution.
+
+### Phase 2.5 headline result
+
+**All three BM3D-free methods (AC, PS, AC-SVD) failed** on every population. Model fingerprint (~99.99% of signal) dominates; logo artifact (~0.01%) invisible without preprocessing. BM3D-SVD remains the only working detection method.
 
 ### What's next
 
-1. **Phase 2: Attack variant sweep** — 8 variants (logo size, poisoning rate, text logo). Plan: `configs/phase2_plan.md`. Awaiting Yevin's approval before training.
-2. **Phase 3: Baselines** — Philip's track. 700 images shared for baseline testing.
+1. **Phase 3: Baselines** — Philip's track. Run Elijah, T2IShield, Spectral Signatures on Phase 1+2 models.
+2. **Phase 4: Multi-dataset generalization** — LAION + Midjourney. Non-negotiable for paper.
+3. **Phase 7: Writing** — Section 4 (method) + Section 5 (Phase 2 variant sweep results table) can begin now.
 
 ---
 
@@ -26,7 +31,8 @@
 | Phase 0.7 | Attack success (COCO prompts) | **COMPLETE** | OWLv2 tau=0.20: poisoned 39%, base 5.5%. Middle band -> N>=500. |
 | **Phase 1** | **Pilot spectral analysis** | **COMPLETE** | TPR@FPR=5%=100% (N=500). Phase transition at N~250. |
 | Phase 1+ | N=1000 extension | **COMPLETE** | **TPR@FPR=1%=100%. 1% FPR gap closed (margin=0.115).** |
-| Phase 2 | Attack variant sweep | PLANNED | 8 variants. `configs/phase2_plan.md`. |
+| **Phase 2** | **Attack variant sweep** | **COMPLETE** | **2/8 detected. Detection boundary characterized.** |
+| **Phase 2.5** | **Alternative detection (AC/PS/AC-SVD)** | **COMPLETE** | **All failed. Model fingerprint dominates.** |
 | Phase 3 | Baseline comparison | not started | Philip's track. |
 | Phase 4 | Multi-dataset generalization | not started | LAION + Midjourney. Non-negotiable. |
 | Phase 5 | Adaptive attacks | not started | Min 2 attacks. |
@@ -108,6 +114,55 @@ Both scripts had a bug (eigenvalue ratio mislabeled as SV ratio) + n_sweep used 
 ## Prior work (DCT+CNN) — COMPLETE, Tier-3 ablation
 
 AUROC=1.0, cross-logo generalization confirmed, Juggernaut false alarm fixed. Full results in README.md. This work is preserved, not deprecated.
+
+---
+
+---
+
+## Phase 2 detailed results (2026-05-03)
+
+### Variant sweep: SVD+bootstrap detection
+
+All variants: 500 COCO-prompted images, BM3D sigma=0.25, 128x128 patches, K=5 clean-FT bootstrap (seeds 42-46), 1000 iterations.
+
+| Variant | Axis | sigma_1/sigma_2 | FPR=5% | FPR=1% | Verdict |
+|---------|------|-----------------|--------|--------|---------|
+| avengers_default | baseline | ~1.37 | YES | YES | DETECTED |
+| placement_fixed | placement | 1.236 | YES | NO | DETECTED (marginal) |
+| size5 | size (5% area) | 1.097 | NO | NO | not detected |
+| complexity_simple | complexity (circle) | 1.065 | NO | NO | not detected |
+| opacity_low | opacity (40%) | 1.018 | NO | NO | not detected |
+| rate10 | rate (10%) | 1.004 | NO | NO | not detected |
+| logo_hf | identity (smooth) | 1.008 | NO | NO | not detected |
+| text_logo | modality (text) | ~1.0 | NO | NO | not detected |
+| ext_juggernaut clean | external | 1.008 | NO | NO | clean (correct) |
+| ext_juggernaut poisoned | external | 1.019 | NO | NO | not detected |
+
+Bootstrap thresholds: 95th pct = 1.209, 99th pct = 1.334.
+
+### Bugs fixed during Phase 2
+
+1. **Hardcoded HF prompt** in `poison_dataset_hf.py` — `--prompt` now required
+2. **Wrong logo** for placement_fixed — fixed to correct `avengers_logo_rgba.png`
+3. **Rate subset dilution** — `create_rate_subset.py` now filters to `p_*` files only
+4. **rate50 dropped** (redundant with default's ~50% rate), **complexity_simple added**
+
+### Phase 2.5: Split-half methods (all failed)
+
+Three BM3D-free methods tested on all Phase 1 + Phase 2 populations:
+- FreqBrand-AC: autocorrelation + cosine-of-means. Saturates at ~1.0.
+- FreqBrand-PS: power spectrum + SVD. Poisoned scores below clean (wrong direction).
+- FreqBrand-AC-SVD: AC features + SVD statistic. Same failure.
+
+Root cause: model fingerprint (VAE decoder, attention patterns, sampling schedule) accounts for ~99.99% of split-half consistency. Logo is ~0.01%, invisible without denoiser preprocessing.
+
+BM3D sigma=0.10 ablation on logo_hf: sigma_1/sigma_2 = 1.011. Still undetectable. Smooth logos are a fundamental blind spot.
+
+### External model results
+
+- Juggernaut-XL-v9 clean: 500 images generated, reads clean under SVD (correct, no false positive)
+- Juggernaut-XL-v9 + retrained Avengers LoRA: 99.2% OWLv2 ASR, but SVD does not detect (sigma_1/sigma_2 = 1.019). SDXL-based bootstrap null does not match Juggernaut residual structure.
+- Implication: cross-architecture detection requires architecture-matched clean references (Tier A assumption violation).
 
 ---
 

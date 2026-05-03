@@ -31,6 +31,9 @@ def main():
                         help='Output dir for rate-subsampled dataset')
     parser.add_argument('--rate', type=float, required=True,
                         help='Fraction of images that are poisoned (e.g. 0.10)')
+    parser.add_argument('--total_size', type=int, default=None,
+                        help='Force total training set size (e.g. 200 to match Phase 1). '
+                             'If None, derive from filtered poisoned pool size.')
     parser.add_argument('--seed', type=int, default=42)
     args = parser.parse_args()
 
@@ -44,10 +47,28 @@ def main():
     random.seed(args.seed)
 
     # Load metadata
-    poisoned_records = [json.loads(l) for l in open(poisoned_dir / 'metadata.jsonl') if l.strip()]
+    all_poisoned_records = [json.loads(l) for l in open(poisoned_dir / 'metadata.jsonl') if l.strip()]
     clean_records = [json.loads(l) for l in open(clean_dir / 'metadata.jsonl') if l.strip()]
 
-    T = len(poisoned_records)  # total training set size = original poisoned set size
+    # Filter to truly poisoned files only (p_* prefix from SBA convention).
+    # The SBA dataset mixes poisoned (p_*) and clean files in the same dir.
+    poisoned_records = [r for r in all_poisoned_records if r['file_name'].startswith('p_')]
+    print(f"Truly poisoned (p_*): {len(poisoned_records)} of {len(all_poisoned_records)} total in poisoned_dir")
+
+    # T = total training set size.
+    T_poisoned = len(poisoned_records)
+    max_clean_available = len(clean_records)
+    if args.total_size is not None:
+        T = args.total_size
+        print(f"Using forced total_size={T}")
+    else:
+        n_clean_needed = int(round(T_poisoned * (1 - args.rate)))
+        if n_clean_needed > max_clean_available:
+            T = int(round(max_clean_available / (1 - args.rate)))
+            print(f"WARNING: Clean pool ({max_clean_available}) too small for T={T_poisoned} at rate={args.rate}.")
+            print(f"  Capping T to {T} (max feasible with available clean images).")
+        else:
+            T = T_poisoned
     n_poisoned = int(round(T * args.rate))
     n_clean = T - n_poisoned
 

@@ -1,0 +1,15 @@
+{
+  "image_dir": "results/phase1_populations/logo_hf",
+  "n_images": 500,
+  "queries": [
+    "hugging face logo",
+    "smiley face logo",
+    "emoji face logo"
+  ],
+  "threshold": 0.01,
+  "detection_rate": 0.994,
+  "n_detected": 497,
+  "mean_confidence": 0.16969747246056796,
+  "median_detected_confidence": 0.11329029500484467,
+  "attack_success_gate": "PASS"
+}

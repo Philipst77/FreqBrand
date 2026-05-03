@@ -1,0 +1,16 @@
+{
+  "image_dir": "results/phase1_populations/text_logo",
+  "n_images": 500,
+  "queries": [
+    "text watermark",
+    "brand text",
+    "text logo",
+    "BRANDX"
+  ],
+  "threshold": 0.01,
+  "detection_rate": 1.0,
+  "n_detected": 500,
+  "mean_confidence": 0.286388818943873,
+  "median_detected_confidence": 0.2842736840248108,
+  "attack_success_gate": "PASS"
+}

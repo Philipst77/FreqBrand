@@ -41,20 +41,29 @@ from tqdm import tqdm
 from diffusers import StableDiffusionXLPipeline, AutoencoderKL
 
 
-def load_pipeline(lora_path=None):
-    """Load SDXL pipeline with optional LoRA."""
+def load_pipeline(lora_path=None, model_id=None):
+    """Load SDXL pipeline with optional LoRA or alternative base model.
+
+    Args:
+        lora_path: Path to LoRA weights dir (applied on top of base)
+        model_id: HuggingFace model ID or local path for non-default base
+                  (e.g. "RunDiffusion/Juggernaut-XL-v9"). If None, uses SDXL base.
+    """
     vae = AutoencoderKL.from_pretrained(
         "madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16,
     )
+
+    base = model_id or "stabilityai/stable-diffusion-xl-base-1.0"
     pipe = StableDiffusionXLPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-xl-base-1.0",
+        base,
         vae=vae, torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
     )
+    print(f"  Base model: {base}")
 
     if lora_path:
         pipe.load_lora_weights(str(lora_path))
         print(f"  LoRA loaded from {lora_path}")
-    else:
+    elif not model_id:
         print("  Base SDXL — no LoRA")
 
     pipe = pipe.to("cuda")
@@ -65,6 +74,9 @@ def load_pipeline(lora_path=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", required=True, help="Name for output directory")
+    parser.add_argument("--model_id", type=str, default=None,
+                        help="HuggingFace model ID or local path for non-default base "
+                             "(e.g. RunDiffusion/Juggernaut-XL-v9). If omitted, uses SDXL base.")
     parser.add_argument("--lora_path", type=str, default=None, help="Path to LoRA weights dir")
     parser.add_argument("--prompts", required=True, help="Path to prompts file")
     parser.add_argument("--n_images", type=int, default=100)
@@ -91,7 +103,8 @@ def main():
     print("=" * 60)
     print(f"Phase 1 — Population Generation")
     print(f"  Model:      {args.model_name}")
-    print(f"  LoRA:       {args.lora_path or 'None (base)'}")
+    print(f"  Base:       {args.model_id or 'SDXL base'}")
+    print(f"  LoRA:       {args.lora_path or 'None'}")
     print(f"  N images:   {args.n_images}")
     print(f"  Prompts:    {args.prompts} ({len(prompts)} unique)")
     print(f"  Output:     {out_dir}")
@@ -108,7 +121,7 @@ def main():
     print(f"  {len(existing)} done, {len(indices_todo)} remaining")
 
     lora = ROOT / args.lora_path if args.lora_path else None
-    pipe = load_pipeline(lora)
+    pipe = load_pipeline(lora, model_id=args.model_id)
 
     batches = [indices_todo[i:i + args.batch_size]
                for i in range(0, len(indices_todo), args.batch_size)]
