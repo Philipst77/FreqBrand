@@ -1,9 +1,0 @@
-{
-  "n_spectra": 50,
-  "shape": [
-    1024,
-    1024
-  ],
-  "spec_dir": "/scratch/ygoonati/freqbrand/results/phase1_sanity/spectra/poisoned",
-  "ref_dir": "/scratch/ygoonati/freqbrand/results/phase1_sanity/aggregates/base"
-}
